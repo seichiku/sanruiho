@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>三類法 評価支援ツール（社内テスト版）</title>
+<style>
+  :root {
+    --navy: #1f4e79; --navy-light: #2e6da4; --bg: #f4f6f9;
+    --taiyo: #2e7d32; --chuki: #ef6c00; --choki: #c62828;
+    --card: #ffffff; --border: #d9dee5;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: "Hiragino Sans", "Noto Sans JP", sans-serif; margin: 0; background: var(--bg); color: #23303f; line-height: 1.65; }
+  header { background: var(--navy); color: #fff; padding: 14px 16px; }
+  header h1 { font-size: 1.15rem; margin: 0; }
+  header p { margin: 4px 0 0; font-size: .75rem; opacity: .85; }
+  main { max-width: 860px; margin: 0 auto; padding: 16px; }
+  .disclaimer { background: #fff8e1; border: 1px solid #f3d47a; border-radius: 8px; padding: 10px 14px; font-size: .8rem; margin-bottom: 16px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+  .card h2 { font-size: 1rem; margin: 0 0 4px; color: var(--navy); }
+  .card .sub { font-size: .78rem; color: #667; margin: 0 0 12px; }
+  .bui-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; }
+  .bui-grid button { padding: 12px 4px; font-size: 1rem; border: 2px solid var(--border); border-radius: 8px; background: #fff; cursor: pointer; }
+  .bui-grid button.sel { border-color: var(--navy); background: var(--navy); color: #fff; font-weight: 700; }
+  .q { margin-bottom: 12px; }
+  .q .label { font-size: .85rem; font-weight: 600; margin-bottom: 4px; }
+  .opts { display: flex; flex-wrap: wrap; gap: 6px; }
+  .opts button { flex: 1 1 30%; min-width: 140px; padding: 8px 6px; font-size: .78rem; border: 1.5px solid var(--border); border-radius: 8px; background: #fff; cursor: pointer; text-align: left; }
+  .opts button.s0.sel { border-color: var(--taiyo); background: #e8f5e9; }
+  .opts button.s1.sel { border-color: var(--chuki); background: #fff3e0; }
+  .opts button.s2.sel { border-color: var(--choki); background: #ffebee; }
+  .checks label { display: flex; gap: 8px; align-items: flex-start; padding: 7px 4px; font-size: .85rem; border-bottom: 1px dashed #e4e8ee; cursor: pointer; }
+  .checks input { margin-top: 4px; }
+  .grp { font-weight: 700; color: var(--navy); margin: 10px 0 2px; font-size: .85rem; }
+  .action { text-align: center; margin: 20px 0; }
+  .action button { background: var(--navy); color: #fff; border: none; border-radius: 10px; padding: 14px 42px; font-size: 1.05rem; font-weight: 700; cursor: pointer; }
+  .action button:disabled { background: #aab4c0; cursor: not-allowed; }
+  /* result */
+  .byoi-badge { display: inline-block; padding: 6px 18px; border-radius: 999px; color: #fff; font-weight: 700; font-size: 1.05rem; }
+  .b0 { background: var(--taiyo); } .b1 { background: var(--chuki); } .b2 { background: var(--choki); }
+  .santable { width: 100%; border-collapse: collapse; font-size: .8rem; margin-top: 8px; }
+  .santable th, .santable td { border: 1px solid var(--border); padding: 6px 8px; text-align: left; }
+  .santable th { background: #eef2f7; }
+  .m-item { border: 1px solid var(--border); border-left: 5px solid var(--navy-light); border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; background: #fbfcfe; }
+  .m-item h4 { margin: 0 0 4px; font-size: .9rem; }
+  .m-item .meta { font-size: .78rem; color: #445; }
+  .badge-draft { display: inline-block; background: #fff3cd; color: #7a5c00; border: 1px solid #e8cf7a; font-size: .68rem; padding: 1px 8px; border-radius: 6px; margin-left: 6px; vertical-align: middle; }
+  .badge-ok { display: inline-block; background: #e2efda; color: #2e5b2e; border: 1px solid #a9d18e; font-size: .68rem; padding: 1px 8px; border-radius: 6px; margin-left: 6px; vertical-align: middle; }
+  .patient-box { background: #eef6fb; border: 1px solid #bcd9ec; border-radius: 8px; padding: 12px 14px; font-size: .88rem; }
+  .warn { color: var(--choki); font-weight: 700; }
+  .logbtns { display: flex; gap: 8px; flex-wrap: wrap; }
+  .logbtns button { padding: 8px 14px; font-size: .8rem; border: 1px solid var(--border); background: #fff; border-radius: 8px; cursor: pointer; }
+  footer { text-align: center; font-size: .7rem; color: #778; padding: 20px 10px 30px; }
+  #resultArea { display: none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>三類法 評価支援ツール <span style="font-size:.75rem;font-weight:400;">社内テスト版 v0.1</span></h1>
+  <p>陰陽・六道・三焦の所見から病位と施術候補を整理する、施術者向けの評価支援ツールです</p>
+</header>
+<main>
+  <div class="disclaimer">
+    ⚠️ 本ツールは<strong>施術者の参考情報</strong>を提示するものであり、医師の診断に代わるものではありません。判定・施術の最終判断は必ず有資格者が行ってください。「たたき台」表示の施術は植田さんの承認前の草案です。
+  </div>
+
+  <!-- STEP 1 -->
+  <div class="card">
+    <h2>STEP 1｜主訴部位</h2>
+    <p class="sub">本日主に見てほしい部位を1つ選択</p>
+    <div class="bui-grid" id="buiGrid"></div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="card">
+    <h2>STEP 2｜陰陽分類（器の状態）</h2>
+    <p class="sub">形態解剖学・傷病学の所見。各項目で当てはまるものを選択</p>
+    <div id="inyoArea"></div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="card">
+    <h2>STEP 3｜六道分類（動きと連動）</h2>
+    <p class="sub">機能解剖学・運動学の所見。6方向のROMと隣関節の代償を評価</p>
+    <div id="rikudoArea"></div>
+  </div>
+
+  <!-- STEP 4 -->
+  <div class="card">
+    <h2>STEP 4｜三焦分類（内部環境）</h2>
+    <p class="sub">問診で該当するものすべてにチェック（各区分3点以上で失調）</p>
+    <div class="checks" id="sanshoArea"></div>
+  </div>
+
+  <div class="action"><button id="judgeBtn" disabled>評価を整理する</button></div>
+
+  <!-- RESULT -->
+  <div id="resultArea">
+    <div class="card">
+      <h2>評価サマリ</h2>
+      <div id="summaryBox"></div>
+    </div>
+    <div class="card">
+      <h2>施術候補（<span id="buiLabel"></span>）</h2>
+      <p class="sub">確定病位に対応する推奨M難度の範囲。<span class="warn">施術者本人が合格している難度の範囲内で選択してください。</span></p>
+      <div id="mList"></div>
+    </div>
+    <div class="card">
+      <h2>患者様への説明たたき台</h2>
+      <div class="patient-box" id="patientBox"></div>
+    </div>
+    <div class="card">
+      <h2>記録</h2>
+      <p class="sub">この端末（ブラウザ）に評価ログを保存できます。CSVで書き出して運用テストの検証に使います。</p>
+      <div class="logbtns">
+        <button id="saveLog">この評価をログに保存</button>
+        <button id="dlLog">ログをCSVでダウンロード</button>
+        <button id="clearLog">ログを全消去</button>
+      </div>
+      <p class="sub" id="logCount" style="margin-top:8px;"></p>
+    </div>
+  </div>
+</main>
+<footer>成竹鍼灸整骨院グループ｜三類法 評価支援ツール（社内運用テスト）｜正本：施術者マニュアル（Notion）＋承認シート</footer>
+
+<script src="data.js"></script>
+<script>
+const BUIS = ["頸","肩","背","腰","股","膝","足"];
+const STAGE_LABELS = ["太陽（初期）","少陽・陽明（中期）","太陰・少陰（長期・重度）"];
+const M_RANGE = [[1,2],[2,3],[4,5]];  // stage → 推奨M難度
+
+const INYO_Q = [
+  {label:"MMT（徒手筋力検査）", opts:["4〜5","3","0〜2"]},
+  {label:"炎症所見（熱感・腫脹・発赤）", opts:["あり（急性炎症）","軽度〜なし","なし（萎縮・変性）"]},
+  {label:"発症からの期間", opts:["〜2週間","2週間〜3ヶ月","3ヶ月以上"]},
+  {label:"圧痛の範囲", opts:["痛む部位と原因が一致","周囲筋へ反射波及","広範囲・鈍い痛み"]},
+  {label:"筋の状態", opts:["防御性収縮","滑液減少・可動域制限","筋萎縮・慢性的な脱力"]},
+];
+const REDFLAG = {label:"外科的適応サイン（レッドフラッグ）", opts:["なし","なし（経過観察）","あり → 医科紹介を優先"]};
+
+const RIKUDO_Q = [
+  {label:"制限のある運動方向の数（前後・左右・上下）", opts:["1方向のみ","2〜3方向","4方向以上（全方向）"]},
+  {label:"ROM左右差（健側比）", opts:["10%未満","10〜30%","30%以上"]},
+  {label:"隣関節の代償動作", opts:["なし","顕著（隣関節が先に動く）","患部の連動消失"]},
+  {label:"痛みのタイミング", opts:["最終域のみ","動作開始時","常時（静止時にもあり）"]},
+  {label:"連動の質", opts:["連動の遅れ","拮抗筋の同時収縮","遠隔部への反射波及"]},
+];
+
+const SANSHO_Q = [
+  {g:"上焦", t:"連続睡眠時間が6時間未満", p:2},
+  {g:"上焦", t:"中途覚醒がある・寝つきが悪い", p:1},
+  {g:"上焦", t:"ドライアイ・眼精疲労がある", p:1},
+  {g:"上焦", t:"頭痛・頭重感が週2回以上", p:1},
+  {g:"中焦", t:"便の形状異常（下痢・便秘・不規則）", p:2},
+  {g:"中焦", t:"臍上腹部の押圧不快感（季肋部の張り）", p:2},
+  {g:"中焦", t:"食後の強い眠気・胃もたれ", p:1},
+  {g:"中焦", t:"口渇・ドライマウス", p:1},
+  {g:"下焦", t:"尿の色が濃い／回数の異常", p:2},
+  {g:"下焦", t:"足部の冷え", p:2},
+  {g:"下焦", t:"月経周期の乱れ・PMSが強い（該当者のみ）", p:2},
+  {g:"下焦", t:"慢性疲労・朝起きられない", p:1},
+];
+const SANSHO_ADVICE = {
+  "上焦": "睡眠・自律神経のリズム（メラトニン→成長ホルモンによる修復）の低下が疑われます。頭蓋・胸郭の可動性と睡眠指導を併用。",
+  "中焦": "消化・代謝（膵臓・消化管ホルモン）の失調が疑われます。季肋部〜背部（T9〜T12）の反射帯を確認し、食事聴取を併用。",
+  "下焦": "水代謝・ストレス耐性（副腎・性ホルモン）の低下が疑われます。腰部（L2〜L4）の反射帯と温補、生活指導を併用。",
+};
+
+let state = { bui: null, inyo: Array(INYO_Q.length).fill(null), red: null, rikudo: Array(RIKUDO_Q.length).fill(null), lastResult: null };
+
+function el(html){ const d=document.createElement("div"); d.innerHTML=html.trim(); return d.firstChild; }
+
+// STEP1
+const buiGrid = document.getElementById("buiGrid");
+BUIS.forEach(b=>{
+  const btn = el(`<button>${b}</button>`);
+  btn.onclick = ()=>{ state.bui=b; [...buiGrid.children].forEach(c=>c.classList.remove("sel")); btn.classList.add("sel"); refresh(); };
+  buiGrid.appendChild(btn);
+});
+
+// generic 3-option question renderer
+function renderQ(container, qs, stateArr, extra){
+  qs.forEach((q,i)=>{
+    const wrap = el(`<div class="q"><div class="label">${q.label}</div><div class="opts"></div></div>`);
+    const opts = wrap.querySelector(".opts");
+    q.opts.forEach((o,s)=>{
+      const b = el(`<button class="s${s}">${o}</button>`);
+      b.onclick = ()=>{ stateArr[i]=s; [...opts.children].forEach(c=>c.classList.remove("sel")); b.classList.add("sel"); refresh(); };
+      opts.appendChild(b);
+    });
+    container.appendChild(wrap);
+  });
+}
+const inyoArea = document.getElementById("inyoArea");
+renderQ(inyoArea, INYO_Q, state.inyo);
+// redflag
+{
+  const wrap = el(`<div class="q"><div class="label">${REDFLAG.label}</div><div class="opts"></div></div>`);
+  const opts = wrap.querySelector(".opts");
+  ["なし","あり → 医科紹介を優先"].forEach((o,s)=>{
+    const b = el(`<button class="s${s===0?0:2}">${o}</button>`);
+    b.onclick = ()=>{ state.red=s; [...opts.children].forEach(c=>c.classList.remove("sel")); b.classList.add("sel"); refresh(); };
+    opts.appendChild(b);
+  });
+  inyoArea.appendChild(wrap);
+}
+renderQ(document.getElementById("rikudoArea"), RIKUDO_Q, state.rikudo);
+
+// STEP4
+const sanshoArea = document.getElementById("sanshoArea");
+let lastG = "";
+SANSHO_Q.forEach((q,i)=>{
+  if(q.g!==lastG){ sanshoArea.appendChild(el(`<div class="grp">【${q.g}】</div>`)); lastG=q.g; }
+  sanshoArea.appendChild(el(`<label><input type="checkbox" data-i="${i}"> ${q.t}（${q.p}点）</label>`));
+});
+
+function majorityStage(arr){
+  const counts=[0,0,0];
+  arr.forEach(v=>{ if(v!==null) counts[v]++; });
+  let best=0;
+  for(let s=2;s>=0;s--){ if(counts[s]>counts[best]) best=s; }
+  // tie → heavier
+  for(let s=2;s>=0;s--){ if(counts[s]===counts[best] && s>best) best=s; }
+  return best;
+}
+
+function refresh(){
+  const ready = state.bui && state.inyo.every(v=>v!==null) && state.red!==null && state.rikudo.every(v=>v!==null);
+  document.getElementById("judgeBtn").disabled = !ready;
+}
+
+document.getElementById("judgeBtn").onclick = ()=>{
+  const inyoStage = majorityStage(state.inyo);
+  const rikudoStage = majorityStage(state.rikudo);
+  const finalStage = Math.max(inyoStage, rikudoStage);  // ズレたら重い方
+  const sansho = {"上焦":0,"中焦":0,"下焦":0};
+  document.querySelectorAll("#sanshoArea input:checked").forEach(c=>{
+    const q = SANSHO_Q[+c.dataset.i]; sansho[q.g]+=q.p;
+  });
+  const shittyo = Object.keys(sansho).filter(k=>sansho[k]>=3);
+  const [mLo,mHi] = M_RANGE[finalStage];
+  const red = state.red===1;
+
+  // summary
+  let sHtml = `<p>確定病位：<span class="byoi-badge b${finalStage}">${STAGE_LABELS[finalStage]}</span></p>`;
+  if(red) sHtml += `<p class="warn">⚠️ レッドフラッグあり：施術より医科紹介を優先してください。以下の施術候補は参考表示です。</p>`;
+  sHtml += `<table class="santable"><tr><th>分類</th><th>判定</th><th>読み</th></tr>
+    <tr><td>陰陽（器）</td><td>${STAGE_LABELS[inyoStage]}</td><td>構造・傷病の進行度</td></tr>
+    <tr><td>六道（連動）</td><td>${STAGE_LABELS[rikudoStage]}</td><td>制限方向と隣関節の代償から。治療対象は「制限方向の隣関節」から選ぶ</td></tr>
+    <tr><td>三焦（内部環境）</td><td>${shittyo.length? shittyo.map(k=>`${k}失調（${sansho[k]}点）`).join("・") : "失調なし"}</td><td>上${sansho["上焦"]}点／中${sansho["中焦"]}点／下${sansho["下焦"]}点</td></tr></table>`;
+  if(shittyo.length){
+    sHtml += shittyo.map(k=>`<p style="font-size:.82rem;margin:8px 0 0;">▶ <strong>${k}</strong>：${SANSHO_ADVICE[k]}</p>`).join("");
+  }
+  document.getElementById("summaryBox").innerHTML = sHtml;
+
+  // M list
+  document.getElementById("buiLabel").textContent = `${state.bui}／推奨 M${mLo}〜M${mHi}`;
+  const items = DB.filter(r=>r.bui===state.bui && r.m>=mLo && r.m<=mHi);
+  const order = {"手技":0,"鍼術":1,"灸術":2};
+  items.sort((a,b)=>(order[a.jutsu]-order[b.jutsu])||(a.m-b.m));
+  document.getElementById("mList").innerHTML = items.map(r=>`
+    <div class="m-item">
+      <h4>［${r.jutsu}｜M${r.m}］${r.title}${r.status==="既存"?'<span class="badge-ok">マニュアル記載</span>':'<span class="badge-draft">たたき台（承認前）</span>'}</h4>
+      <div class="meta">
+        術前術後の検査：${r.kensa}<br>
+        ${r.byoi!=="―"?`対象にした病位：${r.byoi}<br>`:""}
+        施術：${r.sejutsu}<br>
+        ${r.keiketsu!=="―"?`経穴：${r.keiketsu}／番手：${r.bante}<br>`:""}
+        合格基準：${r.gokaku}
+      </div>
+    </div>`).join("") || "<p>該当する施術データがありません。</p>";
+
+  // patient explanation
+  const stageWords = [
+    "症状は初期の段階で、痛みの場所と原因が一致しているタイプです。まずは炎症を抑えて、表面の筋肉を整えるところから始めます。",
+    "症状は中期の段階で、痛みの場所だけでなく周囲の筋肉や隣の関節に負担が広がり始めています。動きの連動を取り戻す施術を組み合わせます。",
+    "症状は時間が経って深部に及んでいる段階です。患部だけでなく、隣の関節や身体の回復力そのものを底上げする計画的な施術が必要です。",
+  ];
+  let pHtml = `<p>${state.bui}部の状態を3つの視点（構造・動きの連動・身体の内部環境）で確認しました。</p><p>${stageWords[finalStage]}</p>`;
+  if(shittyo.length) pHtml += `<p>また、問診から${shittyo.join("・")}（${shittyo.map(k=>({"上焦":"睡眠・自律神経","中焦":"消化・代謝","下焦":"水分代謝・冷え"}[k])).join("・")}）の面でも回復力が下がっているサインが見られます。施術に加えて生活面のご提案もさせてください。</p>`;
+  if(red) pHtml = `<p class="warn">検査で医科での精査をおすすめすべき所見がありました。まず病院の受診をご案内ください。</p>` + pHtml;
+  document.getElementById("patientBox").innerHTML = pHtml;
+
+  state.lastResult = {
+    date: new Date().toISOString().slice(0,16).replace("T"," "),
+    bui: state.bui, inyo: STAGE_LABELS[inyoStage], rikudo: STAGE_LABELS[rikudoStage],
+    final: STAGE_LABELS[finalStage], mRange: `M${mLo}-M${mHi}`,
+    sanshoU: sansho["上焦"], sanshoC: sansho["中焦"], sanshoG: sansho["下焦"],
+    shittyo: shittyo.join("・")||"なし", red: red?"あり":"なし",
+  };
+  document.getElementById("resultArea").style.display = "block";
+  document.getElementById("resultArea").scrollIntoView({behavior:"smooth"});
+  updateLogCount();
+};
+
+// ---- log ----
+const LS_KEY = "sanruiho_logs_v1";
+function getLogs(){ try{ return JSON.parse(localStorage.getItem(LS_KEY)||"[]"); }catch(e){ return []; } }
+function updateLogCount(){ document.getElementById("logCount").textContent = `保存済みログ：${getLogs().length}件（この端末のみ）`; }
+document.getElementById("saveLog").onclick = ()=>{
+  if(!state.lastResult) return;
+  const logs = getLogs(); logs.push(state.lastResult);
+  localStorage.setItem(LS_KEY, JSON.stringify(logs)); updateLogCount();
+};
+document.getElementById("dlLog").onclick = ()=>{
+  const logs = getLogs();
+  if(!logs.length){ alert("ログがありません"); return; }
+  const head = ["日時","部位","陰陽","六道","確定病位","推奨M","上焦点","中焦点","下焦点","失調","レッドフラッグ"];
+  const rows = logs.map(l=>[l.date,l.bui,l.inyo,l.rikudo,l.final,l.mRange,l.sanshoU,l.sanshoC,l.sanshoG,l.shittyo,l.red]);
+  const csv = "﻿" + [head, ...rows].map(r=>r.join(",")).join("\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv],{type:"text/csv"}));
+  a.download = "sanruiho_logs.csv"; a.click();
+};
+document.getElementById("clearLog").onclick = ()=>{
+  if(confirm("この端末の評価ログを全て削除しますか？")){ localStorage.removeItem(LS_KEY); updateLogCount(); }
+};
+updateLogCount();
+</script>
+</body>
+</html>

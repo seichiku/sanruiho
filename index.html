@@ -54,6 +54,11 @@
   .logbtns button { padding: 8px 14px; font-size: .8rem; border: 1px solid var(--border); background: #fff; border-radius: 8px; cursor: pointer; }
   footer { text-align: center; font-size: .7rem; color: #778; padding: 20px 10px 30px; }
   #resultArea { display: none; }
+.fb{display:flex;flex-direction:column;gap:10px;margin:8px 0 12px;}
+.fbrow{display:flex;flex-direction:column;gap:6px;font-size:.85rem;}
+.fbrow input[type=text],.fbrow select,.fbrow textarea{font:inherit;padding:8px;border:1px solid #cfd8dc;border-radius:8px;width:100%;box-sizing:border-box;}
+.fbsel{flex-direction:row;gap:12px;flex-wrap:wrap;} .fbsel label{flex:1;min-width:180px;display:flex;flex-direction:column;gap:6px;}
+.logbtns button.primary{background:#1a73e8;color:#fff;border-color:#1a73e8;font-weight:bold;}
 </style>
 </head>
 <body>
@@ -112,14 +117,34 @@
       <div class="patient-box" id="patientBox"></div>
     </div>
     <div class="card">
-      <h2>記録</h2>
-      <p class="sub">この端末（ブラウザ）に評価ログを保存できます。CSVで書き出して運用テストの検証に使います。</p>
-      <div class="logbtns">
-        <button id="saveLog">この評価をログに保存</button>
-        <button id="dlLog">ログをCSVでダウンロード</button>
-        <button id="clearLog">ログを全消去</button>
+      <h2>記録・フィードバック</h2>
+      <p class="sub">判定結果と、その判定が合っていたかをスプレッドシート「三類法③評価ログ_運用テスト」に送ります（この端末にも控えが残ります）。</p>
+      <div class="fb">
+        <label class="fbrow">記録者 <input type="text" id="fbName" placeholder="例：植田" maxlength="20"></label>
+        <div class="fbrow"><span>この判定は妥当？</span>
+          <div class="opts" id="fbValid">
+            <button class="s0" data-v="妥当">妥当</button>
+            <button class="s1" data-v="迷う">迷う</button>
+            <button class="s2" data-v="違う">違う</button>
+          </div>
+        </div>
+        <div class="fbrow fbsel">
+          <label>正しいと思う病位
+            <select id="fbStage"><option value="">（選択）</option><option>太陽（初期）</option><option>少陽・陽明（中期）</option><option>太陰・少陰（長期・重度）</option></select>
+          </label>
+          <label>正しいと思うM
+            <select id="fbM"><option value="">（選択）</option><option>M1</option><option>M2</option><option>M3</option><option>M4</option><option>M5</option></select>
+          </label>
+        </div>
+        <label class="fbrow">コメント（違和感・足りない項目・現場での気づき）<textarea id="fbComment" rows="3" placeholder="例：MMT3でも急性期なら太陽にしたい／六道の質問が答えにくい など"></textarea></label>
       </div>
-      <p class="sub" id="logCount" style="margin-top:8px;"></p>
+      <div class="logbtns">
+        <button id="sendLog" class="primary">スプレッドシートに送信</button>
+        <button id="dlLog">この端末の控えをCSVで保存</button>
+        <button id="clearLog">端末の控えを全消去</button>
+      </div>
+      <p class="sub" id="sendStatus" style="margin-top:8px;"></p>
+      <p class="sub" id="logCount"></p>
     </div>
   </div>
 </main>
@@ -284,7 +309,7 @@ document.getElementById("judgeBtn").onclick = ()=>{
   document.getElementById("patientBox").innerHTML = pHtml;
 
   state.lastResult = {
-    date: new Date().toISOString().slice(0,16).replace("T"," "),
+    date: localStamp(),
     bui: state.bui, inyo: STAGE_LABELS[inyoStage], rikudo: STAGE_LABELS[rikudoStage],
     final: STAGE_LABELS[finalStage], mRange: `M${mLo}-M${mHi}`,
     sanshoU: sansho["上焦"], sanshoC: sansho["中焦"], sanshoG: sansho["下焦"],
@@ -296,28 +321,88 @@ document.getElementById("judgeBtn").onclick = ()=>{
 };
 
 // ---- log ----
+const API_URL = "https://script.google.com/macros/s/AKfycbzBPkI-XshHFTzRn-XqJR4iO_ffY2KxcOqprgqr3zOmyKTlpg-B-dVqeHaKSS5c4v-QQQ/exec";   // GAS Web App（三類法③評価ログ_運用テスト にバインド）
 const LS_KEY = "sanruiho_logs_v1";
+const LS_UNSENT = "sanruiho_unsent_v1";
+const LS_NAME = "sanruiho_recorder";
+function localStamp(){ const d=new Date(), z=n=>String(n).padStart(2,"0"); return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())} ${z(d.getHours())}:${z(d.getMinutes())}`; }
 function getLogs(){ try{ return JSON.parse(localStorage.getItem(LS_KEY)||"[]"); }catch(e){ return []; } }
-function updateLogCount(){ document.getElementById("logCount").textContent = `保存済みログ：${getLogs().length}件（この端末のみ）`; }
-document.getElementById("saveLog").onclick = ()=>{
-  if(!state.lastResult) return;
-  const logs = getLogs(); logs.push(state.lastResult);
-  localStorage.setItem(LS_KEY, JSON.stringify(logs)); updateLogCount();
+function getUnsent(){ try{ return JSON.parse(localStorage.getItem(LS_UNSENT)||"[]"); }catch(e){ return []; } }
+function setUnsent(a){ localStorage.setItem(LS_UNSENT, JSON.stringify(a)); }
+function updateLogCount(){
+  const u = getUnsent().length;
+  document.getElementById("logCount").textContent = `この端末の控え：${getLogs().length}件` + (u? `（うち未送信 ${u}件：次回送信時に再送します）` : "");
+}
+function setStatus(msg, ok){ const el=document.getElementById("sendStatus"); el.textContent=msg; el.style.color = ok===false ? "#b00020" : (ok ? "#0a7a2f" : ""); }
+
+// フィードバック欄
+let fbValid = "";
+document.querySelectorAll("#fbValid button").forEach(b=>{
+  b.onclick = ()=>{ fbValid=b.dataset.v; document.querySelectorAll("#fbValid button").forEach(c=>c.classList.remove("sel")); b.classList.add("sel"); };
+});
+document.getElementById("fbName").value = localStorage.getItem(LS_NAME) || "";
+
+function buildPayload(){
+  const r = state.lastResult;
+  const checked = [...document.querySelectorAll("#sanshoArea input:checked")].map(c=>SANSHO_Q[+c.dataset.i].t);
+  return Object.assign({}, r, {
+    recorder: document.getElementById("fbName").value.trim(),
+    inyoAns: INYO_Q.map((q,i)=>`${q.label.split("（")[0]}=${q.opts[state.inyo[i]]}`).join("／"),
+    rikudoAns: RIKUDO_Q.map((q,i)=>`${q.label.split("（")[0]}=${q.opts[state.rikudo[i]]}`).join("／"),
+    sanshoChecked: checked.join("／") || "なし",
+    fbValid, fbStage: document.getElementById("fbStage").value, fbM: document.getElementById("fbM").value,
+    comment: document.getElementById("fbComment").value.trim(),
+  });
+}
+async function postOne(p){
+  const res = await fetch(API_URL, {method:"POST", body: JSON.stringify(p)});
+  const j = await res.json();
+  if(!j.ok) throw new Error(j.error||"NG");
+  return j;
+}
+async function flushUnsent(){
+  const q = getUnsent(); if(!q.length) return 0;
+  const rest = []; let sent = 0;
+  for(const p of q){ try{ await postOne(p); sent++; }catch(e){ rest.push(p); } }
+  setUnsent(rest); return sent;
+}
+document.getElementById("sendLog").onclick = async ()=>{
+  if(!state.lastResult){ alert("先に「判定する」を押してください"); return; }
+  const name = document.getElementById("fbName").value.trim();
+  if(!name){ alert("記録者名を入れてください"); document.getElementById("fbName").focus(); return; }
+  if(!fbValid){ alert("「この判定は妥当？」を選んでください"); return; }
+  localStorage.setItem(LS_NAME, name);
+  const p = buildPayload();
+  const logs = getLogs(); logs.push(p); localStorage.setItem(LS_KEY, JSON.stringify(logs));
+  const btn = document.getElementById("sendLog"); btn.disabled = true; setStatus("送信中…");
+  try{
+    if(!API_URL) throw new Error("API_URL未設定");
+    const j = await postOne(p);
+    const extra = await flushUnsent();
+    setStatus(`送信しました（スプレッドシート ${j.count + extra}件目）` + (extra? `＋未送信分${extra}件を再送` : ""), true);
+    document.getElementById("fbComment").value = "";
+  }catch(e){
+    const u = getUnsent(); u.push(p); setUnsent(u);
+    setStatus("送信できませんでした（通信環境を確認してください）。この端末に保存したので、次回送信時に自動で再送します。", false);
+  }
+  btn.disabled = false; updateLogCount();
 };
 document.getElementById("dlLog").onclick = ()=>{
   const logs = getLogs();
-  if(!logs.length){ alert("ログがありません"); return; }
-  const head = ["日時","部位","陰陽","六道","確定病位","推奨M","上焦点","中焦点","下焦点","失調","レッドフラッグ"];
-  const rows = logs.map(l=>[l.date,l.bui,l.inyo,l.rikudo,l.final,l.mRange,l.sanshoU,l.sanshoC,l.sanshoG,l.shittyo,l.red]);
-  const csv = "﻿" + [head, ...rows].map(r=>r.join(",")).join("\n");
+  if(!logs.length){ alert("控えがありません"); return; }
+  const head = ["評価日時","記録者","部位","陰陽","六道","確定病位","推奨M","上焦点","中焦点","下焦点","失調","レッドフラッグ","判定は妥当か","正しいと思う病位","正しいと思うM","コメント"];
+  const q = v => `"${String(v==null?"":v).replace(/"/g,'""')}"`;
+  const rows = logs.map(l=>[l.date,l.recorder,l.bui,l.inyo,l.rikudo,l.final,l.mRange,l.sanshoU,l.sanshoC,l.sanshoG,l.shittyo,l.red,l.fbValid,l.fbStage,l.fbM,l.comment].map(q));
+  const csv = "﻿" + [head.map(q), ...rows].map(r=>r.join(",")).join("\n");
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([csv],{type:"text/csv"}));
   a.download = "sanruiho_logs.csv"; a.click();
 };
 document.getElementById("clearLog").onclick = ()=>{
-  if(confirm("この端末の評価ログを全て削除しますか？")){ localStorage.removeItem(LS_KEY); updateLogCount(); }
+  if(confirm("この端末の控えを全て削除しますか？（スプレッドシートに送信済みの分は消えません）")){ localStorage.removeItem(LS_KEY); localStorage.removeItem(LS_UNSENT); updateLogCount(); }
 };
 updateLogCount();
+if(API_URL) flushUnsent().then(n=>{ if(n) { setStatus(`未送信だった${n}件を送信しました`, true); updateLogCount(); } });
 </script>
 </body>
 </html>

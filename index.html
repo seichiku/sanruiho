@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
-<title>三類法 評価支援ツール（社内テスト版）</title>
+<title>三類法 評価支援ツール（社内テスト版 v0.2）</title>
 <style>
   :root {
     --navy: #1f4e79; --navy-light: #2e6da4; --bg: #f4f6f9;
-    --taiyo: #2e7d32; --chuki: #ef6c00; --choki: #c62828;
+    --p0: #c62828; --p1: #ef6c00; --p2: #2e7d32;
     --card: #ffffff; --border: #d9dee5;
   }
   * { box-sizing: border-box; }
@@ -16,90 +16,150 @@
   header { background: var(--navy); color: #fff; padding: 14px 16px; }
   header h1 { font-size: 1.15rem; margin: 0; }
   header p { margin: 4px 0 0; font-size: .75rem; opacity: .85; }
-  main { max-width: 860px; margin: 0 auto; padding: 16px; }
+  main { max-width: 900px; margin: 0 auto; padding: 16px; }
   .disclaimer { background: #fff8e1; border: 1px solid #f3d47a; border-radius: 8px; padding: 10px 14px; font-size: .8rem; margin-bottom: 16px; }
   .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
   .card h2 { font-size: 1rem; margin: 0 0 4px; color: var(--navy); }
+  .card h3 { font-size: .9rem; margin: 14px 0 6px; color: var(--navy); border-left: 4px solid var(--navy-light); padding-left: 8px; }
   .card .sub { font-size: .78rem; color: #667; margin: 0 0 12px; }
-  .bui-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; }
-  .bui-grid button { padding: 12px 4px; font-size: 1rem; border: 2px solid var(--border); border-radius: 8px; background: #fff; cursor: pointer; }
+  .bui-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+  .bui-grid button { padding: 12px 4px; font-size: .95rem; border: 2px solid var(--border); border-radius: 8px; background: #fff; cursor: pointer; }
   .bui-grid button.sel { border-color: var(--navy); background: var(--navy); color: #fff; font-weight: 700; }
   .q { margin-bottom: 12px; }
   .q .label { font-size: .85rem; font-weight: 600; margin-bottom: 4px; }
   .opts { display: flex; flex-wrap: wrap; gap: 6px; }
   .opts button { flex: 1 1 30%; min-width: 140px; padding: 8px 6px; font-size: .78rem; border: 1.5px solid var(--border); border-radius: 8px; background: #fff; cursor: pointer; text-align: left; }
-  .opts button.s0.sel { border-color: var(--taiyo); background: #e8f5e9; }
-  .opts button.s1.sel { border-color: var(--chuki); background: #fff3e0; }
-  .opts button.s2.sel { border-color: var(--choki); background: #ffebee; }
-  .checks label { display: flex; gap: 8px; align-items: flex-start; padding: 7px 4px; font-size: .85rem; border-bottom: 1px dashed #e4e8ee; cursor: pointer; }
+  .opts button.sel { border-color: var(--navy); background: #e8eef7; font-weight: 700; }
+  .opts button.s0.sel { border-color: var(--p0); background: #ffebee; }
+  .opts button.s1.sel { border-color: var(--p1); background: #fff3e0; }
+  .opts button.s2.sel { border-color: var(--p2); background: #e8f5e9; }
+  .opts.small button { flex: 0 1 auto; min-width: 0; padding: 6px 12px; }
+  .opts button.hint { box-shadow: 0 0 0 2px #ffd54f inset; }
+  .tissue button { flex: 1 1 45%; }
+  .tissue button small { display: block; font-weight: 400; color: #667; font-size: .7rem; }
+  .excl button.sel { border-color: #999; background: #eee; }
+  .checks label { display: flex; gap: 8px; align-items: flex-start; padding: 6px 4px; font-size: .83rem; border-bottom: 1px dashed #e4e8ee; cursor: pointer; }
   .checks input { margin-top: 4px; }
+  .checks.red label { color: #8a1c1c; }
   .grp { font-weight: 700; color: var(--navy); margin: 10px 0 2px; font-size: .85rem; }
   .action { text-align: center; margin: 20px 0; }
   .action button { background: var(--navy); color: #fff; border: none; border-radius: 10px; padding: 14px 42px; font-size: 1.05rem; font-weight: 700; cursor: pointer; }
   .action button:disabled { background: #aab4c0; cursor: not-allowed; }
+  .note { font-size: .8rem; background: #f1f5fb; border-left: 4px solid var(--navy-light); padding: 8px 12px; border-radius: 6px; margin: 8px 0; }
+  .note.warn { background: #fff3e0; border-color: var(--p1); }
+  .note.red { background: #ffebee; border-color: var(--p0); color: #8a1c1c; }
+  .hidden { display: none; }
   /* result */
-  .byoi-badge { display: inline-block; padding: 6px 18px; border-radius: 999px; color: #fff; font-weight: 700; font-size: 1.05rem; }
-  .b0 { background: var(--taiyo); } .b1 { background: var(--chuki); } .b2 { background: var(--choki); }
+  .badge { display: inline-block; padding: 4px 14px; border-radius: 999px; color: #fff; font-weight: 700; font-size: .95rem; margin-right: 6px; }
+  .b0 { background: var(--p0); } .b1 { background: var(--p1); } .b2 { background: var(--p2); } .bn { background: var(--navy-light); } .bg { background: #777; }
   .santable { width: 100%; border-collapse: collapse; font-size: .8rem; margin-top: 8px; }
-  .santable th, .santable td { border: 1px solid var(--border); padding: 6px 8px; text-align: left; }
-  .santable th { background: #eef2f7; }
+  .santable th, .santable td { border: 1px solid var(--border); padding: 6px 8px; text-align: left; vertical-align: top; }
+  .santable th { background: #eef2f7; white-space: nowrap; }
   .m-item { border: 1px solid var(--border); border-left: 5px solid var(--navy-light); border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; background: #fbfcfe; }
+  .m-item.rec { border-left-color: var(--p2); background: #f3faf3; }
+  .m-item.dim { opacity: .55; }
   .m-item h4 { margin: 0 0 4px; font-size: .9rem; }
   .m-item .meta { font-size: .78rem; color: #445; }
-  .badge-draft { display: inline-block; background: #fff3cd; color: #7a5c00; border: 1px solid #e8cf7a; font-size: .68rem; padding: 1px 8px; border-radius: 6px; margin-left: 6px; vertical-align: middle; }
-  .badge-ok { display: inline-block; background: #e2efda; color: #2e5b2e; border: 1px solid #a9d18e; font-size: .68rem; padding: 1px 8px; border-radius: 6px; margin-left: 6px; vertical-align: middle; }
+  .badge-rec { display: inline-block; background: #e2efda; color: #2e5b2e; border: 1px solid #a9d18e; font-size: .68rem; padding: 1px 8px; border-radius: 6px; margin-left: 6px; vertical-align: middle; }
+  .badge-m5 { display: inline-block; background: #ffebee; color: #8a1c1c; border: 1px solid #e7a4a4; font-size: .68rem; padding: 1px 8px; border-radius: 6px; margin-left: 6px; vertical-align: middle; }
   .patient-box { background: #eef6fb; border: 1px solid #bcd9ec; border-radius: 8px; padding: 12px 14px; font-size: .88rem; }
-  .warn { color: var(--choki); font-weight: 700; }
+  .warn { color: var(--p0); font-weight: 700; }
+  details { margin: 6px 0; font-size: .8rem; }
+  details summary { cursor: pointer; color: var(--navy); font-weight: 600; }
   .logbtns { display: flex; gap: 8px; flex-wrap: wrap; }
   .logbtns button { padding: 8px 14px; font-size: .8rem; border: 1px solid var(--border); background: #fff; border-radius: 8px; cursor: pointer; }
+  .logbtns button.primary{background:#1a73e8;color:#fff;border-color:#1a73e8;font-weight:bold;}
   footer { text-align: center; font-size: .7rem; color: #778; padding: 20px 10px 30px; }
   #resultArea { display: none; }
-.fb{display:flex;flex-direction:column;gap:10px;margin:8px 0 12px;}
-.fbrow{display:flex;flex-direction:column;gap:6px;font-size:.85rem;}
-.fbrow input[type=text],.fbrow select,.fbrow textarea{font:inherit;padding:8px;border:1px solid #cfd8dc;border-radius:8px;width:100%;box-sizing:border-box;}
-.fbsel{flex-direction:row;gap:12px;flex-wrap:wrap;} .fbsel label{flex:1;min-width:180px;display:flex;flex-direction:column;gap:6px;}
-.logbtns button.primary{background:#1a73e8;color:#fff;border-color:#1a73e8;font-weight:bold;}
+  .fb{display:flex;flex-direction:column;gap:10px;margin:8px 0 12px;}
+  .fbrow{display:flex;flex-direction:column;gap:6px;font-size:.85rem;}
+  .fbrow input[type=text],.fbrow select,.fbrow textarea, .q input[type=text]{font:inherit;padding:8px;border:1px solid #cfd8dc;border-radius:8px;width:100%;box-sizing:border-box;}
+  .fbsel{flex-direction:row;gap:12px;flex-wrap:wrap;} .fbsel label{flex:1;min-width:160px;display:flex;flex-direction:column;gap:6px;}
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 600px) { .row2 { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
 <header>
-  <h1>三類法 評価支援ツール <span style="font-size:.75rem;font-weight:400;">社内テスト版 v0.1</span></h1>
-  <p>陰陽・六道・三焦の所見から病位と施術候補を整理する、施術者向けの評価支援ツールです</p>
+  <h1>三類法 評価支援ツール <span style="font-size:.75rem;font-weight:400;">社内テスト版 v0.2</span></h1>
+  <p>陰陽（患部の炎症：組織と時期）→ 必要なら六道（運動リズム）・三焦（食事・睡眠・排泄）へ。正本：Notion「三類法」2026-10-17版</p>
 </header>
 <main>
   <div class="disclaimer">
-    ⚠️ 本ツールは<strong>施術者の参考情報</strong>を提示するものであり、医師の診断に代わるものではありません。判定・施術の最終判断は必ず有資格者が行ってください。「たたき台」表示の施術は植田さんの承認前の草案です。
+    ⚠️ 本ツールは<strong>施術者の参考情報</strong>を提示するものであり、医師の診断に代わるものではありません。判定・施術の最終判断は必ず有資格者が行ってください。時期の多数決と難度（M）の対応ルールは<strong>たたき台</strong>です（スプシ②判定ロジック表 v0.2）。
   </div>
 
   <!-- STEP 1 -->
   <div class="card">
-    <h2>STEP 1｜主訴部位</h2>
-    <p class="sub">本日主に見てほしい部位を1つ選択</p>
-    <div class="bui-grid" id="buiGrid"></div>
+    <h2>STEP 1｜主訴</h2>
+    <p class="sub">患者名と、本日主に見てほしい部位・訴えを入れる</p>
+    <div class="q"><div class="label">患者名</div><input type="text" id="ptName" placeholder="例：山田 太郎（イニシャル可）" maxlength="40"></div>
+    <div class="q"><div class="label">部位（保険請求と同じ区分。1つ）</div>
+      <div class="grp">【体幹】</div><div class="bui-grid" id="buiGrid0"></div>
+      <div class="grp">【上肢】</div><div class="bui-grid" id="buiGrid1"></div>
+      <div class="grp">【下肢】</div><div class="bui-grid" id="buiGrid2"></div>
+      <div class="sub" id="partNote" style="margin-top:6px;"></div>
+    </div>
+    <div class="q"><div class="label">左右<span id="sideReq" style="font-weight:400;color:#667;"></span></div><div class="opts small" id="sideOpts"></div></div>
+    <div class="q"><div class="label">訴えの種類（当てはまるものすべて）</div><div class="opts" id="complaintOpts"></div></div>
+    <div class="q"><div class="label">発症からの期間（参考。日数だけで時期を決めない）</div><div class="opts" id="periodOpts"></div></div>
+    <div class="q"><div class="label">きっかけ</div><div class="opts" id="triggerOpts"></div></div>
+    <div class="q"><div class="label">経過</div><div class="opts" id="courseOpts"></div></div>
   </div>
 
   <!-- STEP 2 -->
   <div class="card">
-    <h2>STEP 2｜陰陽分類（器の状態）</h2>
-    <p class="sub">形態解剖学・傷病学の所見。各項目で当てはまるものを選択</p>
-    <div id="inyoArea"></div>
+    <h2>STEP 2｜陰陽分類（患部の炎症：どの組織に・どの時期か）</h2>
+    <p class="sub">まず対象組織を1つ選び、次に時期の所見を4項目で選ぶ</p>
+    <h3>2-1 対象組織（M1〜M5は組織の分類。技術難度のMとは別）</h3>
+    <div class="opts tissue" id="tissueOpts"></div>
+    <div class="sub" id="tissueHint" style="margin-top:6px;"></div>
+    <details><summary>M1〜5の対象外（腱・骨・皮膚・内臓）の場合</summary>
+      <div class="opts excl" id="exclOpts" style="margin-top:6px;"></div>
+      <div id="exclNote"></div>
+    </details>
+    <h3>2-2 時期の所見（急性期／拘縮期／回復期）</h3>
+    <div id="phaseArea"></div>
+    <h3>2-3 「陰」のサイン（該当があれば）</h3>
+    <div class="checks" id="inSignArea"></div>
+    <div class="sub" style="margin-top:4px;">骨折・脱臼の既往、変形、結節、奇形などは炎症所見が無くても患部として認める傷病。施術方法が異なる。</div>
+    <h3>2-4 安全確認（レッドフラッグ）</h3>
+    <div class="checks red" id="redArea"></div>
   </div>
 
   <!-- STEP 3 -->
   <div class="card">
-    <h2>STEP 3｜六道分類（動きと連動）</h2>
-    <p class="sub">機能解剖学・運動学の所見。6方向のROMと隣関節の代償を評価</p>
-    <div id="rikudoArea"></div>
+    <h2>STEP 3｜分岐：陰陽のみで終えるか、六道・三焦へ進むか</h2>
+    <p class="sub">陰陽の所見が揃うと推奨が出ます。最終判断は施術者</p>
+    <div id="branchRec" class="note">STEP 2 を入力すると推奨が表示されます。</div>
+    <div class="opts" id="branchOpts">
+      <button data-b="none">陰陽のみで終える（局所処置で完結）</button>
+      <button data-b="rikudo">六道へ進む（運動リズム・隣接関節）</button>
+      <button data-b="sansho">三焦へ進む（食事・睡眠・排泄）</button>
+    </div>
   </div>
 
   <!-- STEP 4 -->
-  <div class="card">
-    <h2>STEP 4｜三焦分類（内部環境）</h2>
-    <p class="sub">問診で該当するものすべてにチェック（各区分3点以上で失調）</p>
-    <div class="checks" id="sanshoArea"></div>
+  <div class="card hidden" id="rikudoCard">
+    <h2>STEP 4｜六道分類（運動リズム）</h2>
+    <p class="sub">5つの運動リズムを観察し、乱れているものを選ぶ。隣接関節：<strong id="neighborTxt"></strong></p>
+    <div id="rikudoArea"></div>
+    <div class="q"><div class="label">最も大きい制限（1つだけ介入する）</div><div class="opts small" id="mainRhythmOpts"></div></div>
+    <details><summary>六道分類の評価手順（5つ）</summary><ol id="rikudoSteps" style="font-size:.8rem;"></ol></details>
   </div>
 
-  <div class="action"><button id="judgeBtn" disabled>評価を整理する</button></div>
+  <!-- STEP 5 -->
+  <div class="card hidden" id="sanshoCard">
+    <h2>STEP 5｜三焦分類（食事・睡眠・排泄）</h2>
+    <p class="sub">問診で該当するものすべてにチェック。主訴の回復を最も妨げている機能を1つ選ぶ</p>
+    <div class="checks" id="sanshoArea"></div>
+    <div class="grp" style="color:#8a1c1c;">【警告徴候：該当すれば医療評価を優先】</div>
+    <div class="checks red" id="sanshoWarnArea"></div>
+    <div class="q" style="margin-top:10px;"><div class="label">最も妨げている機能（空欄なら該当数の多い機能を採用）</div><div class="opts small" id="mainFuncOpts"></div></div>
+    <details><summary>三焦分類の共通評価手順（5つ）</summary><ol id="sanshoSteps" style="font-size:.8rem;"></ol></details>
+  </div>
+
+  <div class="action"><button id="judgeBtn" disabled>評価を整理する</button><div class="sub" id="judgeMsg" style="margin-top:6px;"></div></div>
 
   <!-- RESULT -->
   <div id="resultArea">
@@ -107,10 +167,24 @@
       <h2>評価サマリ</h2>
       <div id="summaryBox"></div>
     </div>
-    <div class="card">
-      <h2>施術候補（<span id="buiLabel"></span>）</h2>
-      <p class="sub">確定病位に対応する推奨M難度の範囲。<span class="warn">施術者本人が合格している難度の範囲内で選択してください。</span></p>
-      <div id="mList"></div>
+    <div class="card" id="inyoResult">
+      <h2>陰陽｜推奨される治療法と時期の方針</h2>
+      <div id="inyoBox"></div>
+      <h3>陰陽の訓練プログラム枠（<span id="inyoBuiLabel"></span>）</h3>
+      <p class="sub">緑＝推奨難度の範囲（たたき台）。<span class="warn">施術者本人が合格している難度の範囲内で選択。M5は指導者の監督下。</span></p>
+      <div id="inyoList"></div>
+    </div>
+    <div class="card hidden" id="rikudoResult">
+      <h2>六道｜乱れたリズムと隣接関節への技法</h2>
+      <div id="rikudoBox"></div>
+      <h3>六道の訓練プログラム枠（<span id="rikudoBuiLabel"></span>）</h3>
+      <div id="rikudoList"></div>
+    </div>
+    <div class="card hidden" id="sanshoResult">
+      <h2>三焦｜回復を妨げている機能と反射点への技法</h2>
+      <div id="sanshoBox"></div>
+      <h3>三焦の訓練プログラム枠（<span id="sanshoBuiLabel"></span>）</h3>
+      <div id="sanshoList"></div>
     </div>
     <div class="card">
       <h2>患者様への説明たたき台</h2>
@@ -118,25 +192,28 @@
     </div>
     <div class="card">
       <h2>記録・フィードバック</h2>
-      <p class="sub">判定結果と、その判定が合っていたかをスプレッドシート「三類法③評価ログ_運用テスト」に送ります（この端末にも控えが残ります）。</p>
+      <p class="sub">判定結果と、その判定が合っていたかをスプレッドシート「三類法③評価ログ」の「ログv2」タブに送ります（この端末にも控えが残ります）。</p>
       <div class="fb">
         <label class="fbrow">記録者 <input type="text" id="fbName" placeholder="例：植田" maxlength="20"></label>
         <div class="fbrow"><span>この判定は妥当？</span>
           <div class="opts" id="fbValid">
-            <button class="s0" data-v="妥当">妥当</button>
+            <button class="s2" data-v="妥当">妥当</button>
             <button class="s1" data-v="迷う">迷う</button>
-            <button class="s2" data-v="違う">違う</button>
+            <button class="s0" data-v="違う">違う</button>
           </div>
         </div>
         <div class="fbrow fbsel">
-          <label>正しいと思う病位
-            <select id="fbStage"><option value="">（選択）</option><option>太陽（初期）</option><option>少陽・陽明（中期）</option><option>太陰・少陰（長期・重度）</option></select>
+          <label>正しいと思う組織
+            <select id="fbTissue"><option value="">（選択）</option></select>
           </label>
-          <label>正しいと思うM
+          <label>正しいと思う時期
+            <select id="fbPhase"><option value="">（選択）</option></select>
+          </label>
+          <label>正しいと思うM（難度）
             <select id="fbM"><option value="">（選択）</option><option>M1</option><option>M2</option><option>M3</option><option>M4</option><option>M5</option></select>
           </label>
         </div>
-        <label class="fbrow">コメント（違和感・足りない項目・現場での気づき）<textarea id="fbComment" rows="3" placeholder="例：MMT3でも急性期なら太陽にしたい／六道の質問が答えにくい など"></textarea></label>
+        <label class="fbrow">コメント（違和感・足りない項目・現場での気づき）<textarea id="fbComment" rows="3" placeholder="例：拘縮期でも筋膜なら難度を上げたい／分岐の推奨が合わない など"></textarea></label>
       </div>
       <div class="logbtns">
         <button id="sendLog" class="primary">スプレッドシートに送信</button>
@@ -146,212 +223,348 @@
       <p class="sub" id="sendStatus" style="margin-top:8px;"></p>
       <p class="sub" id="logCount"></p>
     </div>
+    <div class="card">
+      <details><summary>検定運用ルール（7つ）</summary><ol id="kenteiRules" style="font-size:.8rem;"></ol></details>
+    </div>
   </div>
 </main>
-<footer>成竹鍼灸整骨院グループ｜三類法 評価支援ツール（社内運用テスト）｜正本：施術者マニュアル（Notion）＋承認シート</footer>
+<footer>成竹鍼灸整骨院グループ｜三類法 評価支援ツール v0.2（社内運用テスト）｜正本：Notion「三類法」（スタッフ共有）＋スプシ①訓練プログラム枠／②判定ロジック表</footer>
 
+<script src="theory.js"></script>
 <script src="data.js"></script>
 <script>
-const BUIS = ["頸","肩","背","腰","股","膝","足"];
-const STAGE_LABELS = ["太陽（初期）","少陽・陽明（中期）","太陰・少陰（長期・重度）"];
-const M_RANGE = [[1,2],[2,3],[4,5]];  // stage → 推奨M難度
+const APP_VERSION = "v0.2";
+function el(html){ const d=document.createElement("div"); d.innerHTML=html.trim(); return d.firstChild; }
+function $(id){ return document.getElementById(id); }
 
-const INYO_Q = [
-  {label:"MMT（徒手筋力検査）", opts:["4〜5","3","0〜2"]},
-  {label:"炎症所見（熱感・腫脹・発赤）", opts:["あり（急性炎症）","軽度〜なし","なし（萎縮・変性）"]},
-  {label:"発症からの期間", opts:["〜2週間","2週間〜3ヶ月","3ヶ月以上"]},
-  {label:"圧痛の範囲", opts:["痛む部位と原因が一致","周囲筋へ反射波及","広範囲・鈍い痛み"]},
-  {label:"筋の状態", opts:["防御性収縮","滑液減少・可動域制限","筋萎縮・慢性的な脱力"]},
-];
-const REDFLAG = {label:"外科的適応サイン（レッドフラッグ）", opts:["なし","なし（経過観察）","あり → 医科紹介を優先"]};
-
-const RIKUDO_Q = [
-  {label:"制限のある運動方向の数（前後・左右・上下）", opts:["1方向のみ","2〜3方向","4方向以上（全方向）"]},
-  {label:"ROM左右差（健側比）", opts:["10%未満","10〜30%","30%以上"]},
-  {label:"隣関節の代償動作", opts:["なし","顕著（隣関節が先に動く）","患部の連動消失"]},
-  {label:"痛みのタイミング", opts:["最終域のみ","動作開始時","常時（静止時にもあり）"]},
-  {label:"連動の質", opts:["連動の遅れ","拮抗筋の同時収縮","遠隔部への反射波及"]},
-];
-
-const SANSHO_Q = [
-  {g:"上焦", t:"連続睡眠時間が6時間未満", p:2},
-  {g:"上焦", t:"中途覚醒がある・寝つきが悪い", p:1},
-  {g:"上焦", t:"ドライアイ・眼精疲労がある", p:1},
-  {g:"上焦", t:"頭痛・頭重感が週2回以上", p:1},
-  {g:"中焦", t:"便の形状異常（下痢・便秘・不規則）", p:2},
-  {g:"中焦", t:"臍上腹部の押圧不快感（季肋部の張り）", p:2},
-  {g:"中焦", t:"食後の強い眠気・胃もたれ", p:1},
-  {g:"中焦", t:"口渇・ドライマウス", p:1},
-  {g:"下焦", t:"尿の色が濃い／回数の異常", p:2},
-  {g:"下焦", t:"足部の冷え", p:2},
-  {g:"下焦", t:"月経周期の乱れ・PMSが強い（該当者のみ）", p:2},
-  {g:"下焦", t:"慢性疲労・朝起きられない", p:1},
-];
-const SANSHO_ADVICE = {
-  "上焦": "睡眠・自律神経のリズム（メラトニン→成長ホルモンによる修復）の低下が疑われます。頭蓋・胸郭の可動性と睡眠指導を併用。",
-  "中焦": "消化・代謝（膵臓・消化管ホルモン）の失調が疑われます。季肋部〜背部（T9〜T12）の反射帯を確認し、食事聴取を併用。",
-  "下焦": "水代謝・ストレス耐性（副腎・性ホルモン）の低下が疑われます。腰部（L2〜L4）の反射帯と温補、生活指導を併用。",
+let state = {
+  part:null, bui:null, side:null, complaints:new Set(), period:null, trigger:null, course:null,
+  tissue:null, excl:null, phase:Array(PHASE_Q.length).fill(null),
+  branch:new Set(), rhythm:Array(RHYTHMS.length).fill(null), mainRhythm:null, mainFunc:null,
+  lastResult:null,
 };
 
-let state = { bui: null, inyo: Array(INYO_Q.length).fill(null), red: null, rikudo: Array(RIKUDO_Q.length).fill(null), lastResult: null };
-
-function el(html){ const d=document.createElement("div"); d.innerHTML=html.trim(); return d.firstChild; }
-
-// STEP1
-const buiGrid = document.getElementById("buiGrid");
-BUIS.forEach(b=>{
-  const btn = el(`<button>${b}</button>`);
-  btn.onclick = ()=>{ state.bui=b; [...buiGrid.children].forEach(c=>c.classList.remove("sel")); btn.classList.add("sel"); refresh(); };
-  buiGrid.appendChild(btn);
-});
-
-// generic 3-option question renderer
-function renderQ(container, qs, stateArr, extra){
-  qs.forEach((q,i)=>{
-    const wrap = el(`<div class="q"><div class="label">${q.label}</div><div class="opts"></div></div>`);
-    const opts = wrap.querySelector(".opts");
-    q.opts.forEach((o,s)=>{
-      const b = el(`<button class="s${s}">${o}</button>`);
-      b.onclick = ()=>{ stateArr[i]=s; [...opts.children].forEach(c=>c.classList.remove("sel")); b.classList.add("sel"); refresh(); };
-      opts.appendChild(b);
-    });
-    container.appendChild(wrap);
+// ---- generic renderers ----
+function renderSingle(container, items, onSel, cls){
+  items.forEach((t,i)=>{
+    const b = el(`<button class="${cls?cls(i):""}">${t}</button>`);
+    b.onclick = ()=>{ [...container.children].forEach(c=>c.classList.remove("sel")); b.classList.add("sel"); onSel(i,t); refresh(); };
+    container.appendChild(b);
   });
 }
-const inyoArea = document.getElementById("inyoArea");
-renderQ(inyoArea, INYO_Q, state.inyo);
-// redflag
-{
-  const wrap = el(`<div class="q"><div class="label">${REDFLAG.label}</div><div class="opts"></div></div>`);
+function renderMulti(container, items, set){
+  items.forEach((t)=>{
+    const b = el(`<button>${t}</button>`);
+    b.onclick = ()=>{ if(set.has(t)){ set.delete(t); b.classList.remove("sel"); } else { set.add(t); b.classList.add("sel"); } refresh(); };
+    container.appendChild(b);
+  });
+}
+function renderChecks(container, items, attr){
+  items.forEach((t,i)=> container.appendChild(el(`<label><input type="checkbox" data-${attr}="${i}"> ${t}</label>`)));
+  container.querySelectorAll("input").forEach(c=> c.onchange = refresh);
+}
+function checked(container){ return [...container.querySelectorAll("input:checked")]; }
+
+// ---- STEP1 ----
+const ZONE_GRID = {"体幹":"buiGrid0","上肢":"buiGrid1","下肢":"buiGrid2"};
+PARTS.forEach(p=>{
+  const btn = el(`<button>${p.label}</button>`);
+  btn.onclick = ()=>{
+    state.part=p; state.bui=p.group;
+    document.querySelectorAll(".bui-grid button").forEach(c=>c.classList.remove("sel")); btn.classList.add("sel");
+    $("neighborTxt").textContent = NEIGHBORS[p.group];
+    $("partNote").textContent = p.near ? `「${p.label}」は正本の訓練プログラムに枠がないため、近接する「${GROUP_LABEL[p.group]}」の枠を参考表示します。` : `訓練プログラム枠：${GROUP_LABEL[p.group]}`;
+    $("sideReq").textContent = p.side ? "（必須）" : "（頸部・腰部などは左右の指定なし。任意）";
+    refresh();
+  };
+  $(ZONE_GRID[p.zone]).appendChild(btn);
+});
+renderSingle($("sideOpts"), SIDES, (i,t)=> state.side=t);
+function partLabel(){ return state.part ? `${state.side ? state.side+" " : ""}${state.part.label}` : ""; }
+COMPLAINTS.forEach(c=>{
+  const b = el(`<button>${c.t}</button>`);
+  b.onclick = ()=>{ if(state.complaints.has(c.t)){ state.complaints.delete(c.t); b.classList.remove("sel"); } else { state.complaints.add(c.t); b.classList.add("sel"); } updateTissueHint(); refresh(); };
+  $("complaintOpts").appendChild(b);
+});
+renderSingle($("periodOpts"), PERIODS, (i)=> state.period=i);
+renderSingle($("triggerOpts"), TRIGGERS, (i,t)=> state.trigger=t);
+renderSingle($("courseOpts"), COURSES, (i)=> state.course=i);
+
+// ---- STEP2 ----
+TISSUES.forEach(t=>{
+  const b = el(`<button data-k="${t.key}">${t.name}<small>${t.hint}</small></button>`);
+  b.onclick = ()=>{ state.tissue=t.key; state.excl=null; [...$("tissueOpts").children].forEach(c=>c.classList.remove("sel")); b.classList.add("sel"); [...$("exclOpts").children].forEach(c=>c.classList.remove("sel")); $("exclNote").innerHTML=""; refresh(); };
+  $("tissueOpts").appendChild(b);
+});
+EXCLUDED.forEach(x=>{
+  const b = el(`<button>${x.name}</button>`);
+  b.onclick = ()=>{ state.excl=x.name; state.tissue=null; [...$("exclOpts").children].forEach(c=>c.classList.remove("sel")); b.classList.add("sel"); [...$("tissueOpts").children].forEach(c=>c.classList.remove("sel")); $("exclNote").innerHTML = `<div class="note warn">${x.note}</div>`; refresh(); };
+  $("exclOpts").appendChild(b);
+});
+function updateTissueHint(){
+  const hints = new Set(); state.complaints.forEach(t=>{ const c=COMPLAINTS.find(x=>x.t===t); c.hint.forEach(h=>hints.add(h)); });
+  [...$("tissueOpts").children].forEach(b=> b.classList.toggle("hint", hints.has(b.dataset.k)));
+  $("tissueHint").textContent = hints.size ? `主訴からの候補（黄枠）：${[...hints].join("・")}。所見で確定してください。` : "";
+}
+PHASE_Q.forEach((q,i)=>{
+  const wrap = el(`<div class="q"><div class="label">${q.label}</div><div class="opts"></div></div>`);
   const opts = wrap.querySelector(".opts");
-  ["なし","あり → 医科紹介を優先"].forEach((o,s)=>{
-    const b = el(`<button class="s${s===0?0:2}">${o}</button>`);
-    b.onclick = ()=>{ state.red=s; [...opts.children].forEach(c=>c.classList.remove("sel")); b.classList.add("sel"); refresh(); };
+  q.opts.forEach((o,s)=>{
+    const b = el(`<button class="s${s}">${o}</button>`);
+    b.onclick = ()=>{ state.phase[i]=s; [...opts.children].forEach(c=>c.classList.remove("sel")); b.classList.add("sel"); refresh(); };
     opts.appendChild(b);
   });
-  inyoArea.appendChild(wrap);
-}
-renderQ(document.getElementById("rikudoArea"), RIKUDO_Q, state.rikudo);
+  $("phaseArea").appendChild(wrap);
+});
+renderChecks($("inSignArea"), IN_SIGNS, "i");
+renderChecks($("redArea"), REDFLAGS, "i");
 
-// STEP4
-const sanshoArea = document.getElementById("sanshoArea");
-let lastG = "";
-SANSHO_Q.forEach((q,i)=>{
-  if(q.g!==lastG){ sanshoArea.appendChild(el(`<div class="grp">【${q.g}】</div>`)); lastG=q.g; }
-  sanshoArea.appendChild(el(`<label><input type="checkbox" data-i="${i}"> ${q.t}（${q.p}点）</label>`));
+// ---- STEP3 ----
+document.querySelectorAll("#branchOpts button").forEach(b=>{
+  b.onclick = ()=>{
+    const k = b.dataset.b;
+    if(k==="none"){ state.branch = new Set(["none"]); }
+    else { state.branch.delete("none"); if(state.branch.has(k)) state.branch.delete(k); else state.branch.add(k); }
+    document.querySelectorAll("#branchOpts button").forEach(c=> c.classList.toggle("sel", state.branch.has(c.dataset.b)));
+    $("rikudoCard").classList.toggle("hidden", !state.branch.has("rikudo"));
+    $("sanshoCard").classList.toggle("hidden", !state.branch.has("sansho"));
+    refresh();
+  };
 });
 
-function majorityStage(arr){
-  const counts=[0,0,0];
-  arr.forEach(v=>{ if(v!==null) counts[v]++; });
-  let best=0;
-  for(let s=2;s>=0;s--){ if(counts[s]>counts[best]) best=s; }
-  // tie → heavier
-  for(let s=2;s>=0;s--){ if(counts[s]===counts[best] && s>best) best=s; }
+// ---- STEP4 ----
+RHYTHMS.forEach((r,i)=>{
+  const wrap = el(`<div class="q"><div class="label">M${r.m}：${r.name}</div><div class="sub" style="margin:0 0 4px;">${r.how}<br>観察点：${r.obs}</div><div class="opts"></div></div>`);
+  const opts = wrap.querySelector(".opts");
+  RHYTHM_OPTS.forEach((o,s)=>{
+    const b = el(`<button class="${["s2","s1","s0",""][s]}">${o}</button>`);
+    b.onclick = ()=>{ state.rhythm[i]=s; [...opts.children].forEach(c=>c.classList.remove("sel")); b.classList.add("sel"); refresh(); };
+    opts.appendChild(b);
+  });
+  $("rikudoArea").appendChild(wrap);
+});
+renderSingle($("mainRhythmOpts"), RHYTHMS.map(r=>`M${r.m} ${r.name}`), (i)=> state.mainRhythm=i);
+RIKUDO_STEPS.forEach(s=> $("rikudoSteps").appendChild(el(`<li>${s}</li>`)));
+
+// ---- STEP5 ----
+{ let lastG=""; SANSHO_Q.forEach((q,i)=>{ if(q.g!==lastG){ $("sanshoArea").appendChild(el(`<div class="grp">【${q.g}】</div>`)); lastG=q.g; } $("sanshoArea").appendChild(el(`<label><input type="checkbox" data-i="${i}"> ${q.t}</label>`)); }); }
+$("sanshoArea").querySelectorAll("input").forEach(c=> c.onchange = refresh);
+renderChecks($("sanshoWarnArea"), SANSHO_WARN, "i");
+renderSingle($("mainFuncOpts"), ["食事","睡眠","排泄"], (i,t)=> state.mainFunc=t);
+SANSHO_STEPS.forEach(s=> $("sanshoSteps").appendChild(el(`<li>${s}</li>`)));
+KENTEI_RULES.forEach(s=> $("kenteiRules").appendChild(el(`<li>${s}</li>`)));
+TISSUES.forEach(t=> $("fbTissue").appendChild(el(`<option>${t.key}</option>`)));
+PHASES.forEach(p=> $("fbPhase").appendChild(el(`<option>${p}</option>`)));
+
+// ---- 判定ロジック（たたき台。スプシ②判定ロジック表 v0.2 と同じ）----
+function majorityPhase(arr){ // 4項目の多数決。同数は保護的な方（早い時期）
+  const counts=[0,0,0]; arr.forEach(v=>{ if(v!==null) counts[v]++; });
+  let best=0; for(let s=0;s<3;s++){ if(counts[s]>counts[best]) best=s; }
   return best;
+}
+function inyoDiff(tissueKey, phase, chronic){ // 推奨難度の範囲
+  const t = TISSUES.find(x=>x.key===tissueKey); let lo=t.dmin, hi=t.dmin;
+  if(phase===1){ hi=lo+1; }
+  if(phase===2){ lo=lo+1; hi=lo+1; }
+  if(chronic && phase>0){ lo=Math.max(lo,4); hi=5; }
+  return [Math.min(lo,5), Math.min(hi,5)];
+}
+function rikudoDiff(nAbn, pain){ let lo,hi; if(nAbn===0) return null; if(nAbn===1){lo=1;hi=2;} else if(nAbn===2){lo=2;hi=3;} else if(nAbn===3){lo=3;hi=4;} else {lo=4;hi=5;} if(pain){ lo=Math.max(lo,3); hi=Math.min(5,Math.max(hi,lo+1)); } return [lo,hi]; }
+function sanshoDiff(n, multi, chronic){ if(n===0) return null; let lo,hi; if(n<=2){lo=1;hi=2;} else if(n<=4){lo=2;hi=3;} else {lo=3;hi=4;} if(multi) hi=Math.max(hi,4); if(chronic){ lo=Math.max(lo,3); hi=5; } return [lo,hi]; }
+
+function inyoReady(){ return state.excl || (state.tissue && state.phase.every(v=>v!==null)); }
+function branchRecommend(){
+  if(!inyoReady()) return null;
+  if(state.excl) return {rikudo:false, sansho:false, text:"対象外の組織です。陰陽のM1〜5からは除外。必要な処置（通電・アイシング・電療・理学療法）は十分に行い、原因となる筋があれば筋炎として評価し直してください。"};
+  const ph = majorityPhase(state.phase);
+  const chronic = state.period===2 || state.course===2;
+  const noEffect = state.course===1;
+  const lifestyle = state.complaints.has("だるさ・疲労・冷え");
+  const rikudo = ph===2 || noEffect || chronic;
+  const sansho = chronic || noEffect || lifestyle;
+  let text = `時期の判定：<strong>${PHASES[ph]}</strong>。`;
+  if(ph===0) text += "急性期は保護と疼痛管理が先。原則<strong>陰陽のみ</strong>で局所処置を完結させる。";
+  if(ph===1) text += "拘縮期は陰陽中心。隣接関節の制限が疑われれば六道も検討。";
+  if(ph===2) text += "回復期は<strong>六道の問題が発生していないかの検査が強く推奨</strong>（正本の指示）。";
+  if(noEffect) text += " 2回同じ施術で変化がない→方針変更。<strong>六道・三焦</strong>で原因を広げて探す。";
+  if(chronic && ph>0) text += " 3ヶ月以上／再発を繰り返す→回復力の問題を疑い<strong>三焦</strong>を併用。";
+  if(lifestyle) text += " だるさ・疲労・冷えの訴え→<strong>三焦</strong>の問診を推奨。";
+  const rec = [rikudo?"六道":null, sansho?"三焦":null].filter(Boolean);
+  text += `<br>▶ 推奨：<strong>${rec.length? rec.join("＋")+"へ進む" : "陰陽のみで終える"}</strong>`;
+  return {rikudo, sansho, text, phase:ph};
 }
 
 function refresh(){
-  const ready = state.bui && state.inyo.every(v=>v!==null) && state.red!==null && state.rikudo.every(v=>v!==null);
-  document.getElementById("judgeBtn").disabled = !ready;
+  const rec = branchRecommend();
+  $("branchRec").innerHTML = rec ? rec.text : "STEP 2 を入力すると推奨が表示されます。";
+  const sideOk = state.part && (!state.part.side || state.side);
+  let ok = state.bui && sideOk && inyoReady() && state.branch.size>0;
+  let msg = "";
+  if(!state.bui) msg = "STEP1：部位を選んでください";
+  else if(!sideOk) msg = "STEP1：左右を選んでください";
+  else if(!inyoReady()) msg = "STEP2：対象組織と時期の所見4項目を選んでください";
+  else if(state.branch.size===0) msg = "STEP3：分岐を選んでください";
+  else if(state.branch.has("rikudo") && !state.rhythm.some(v=>v!==null && v!==3)){ ok=false; msg = "STEP4：運動リズムを1つ以上評価してください"; }
+  $("judgeBtn").disabled = !ok; $("judgeMsg").textContent = msg;
 }
 
-document.getElementById("judgeBtn").onclick = ()=>{
-  const inyoStage = majorityStage(state.inyo);
-  const rikudoStage = majorityStage(state.rikudo);
-  const finalStage = Math.max(inyoStage, rikudoStage);  // ズレたら重い方
-  const sansho = {"上焦":0,"中焦":0,"下焦":0};
-  document.querySelectorAll("#sanshoArea input:checked").forEach(c=>{
-    const q = SANSHO_Q[+c.dataset.i]; sansho[q.g]+=q.p;
-  });
-  const shittyo = Object.keys(sansho).filter(k=>sansho[k]>=3);
-  const [mLo,mHi] = M_RANGE[finalStage];
-  const red = state.red===1;
-
-  // summary
-  let sHtml = `<p>確定病位：<span class="byoi-badge b${finalStage}">${STAGE_LABELS[finalStage]}</span></p>`;
-  if(red) sHtml += `<p class="warn">⚠️ レッドフラッグあり：施術より医科紹介を優先してください。以下の施術候補は参考表示です。</p>`;
-  sHtml += `<table class="santable"><tr><th>分類</th><th>判定</th><th>読み</th></tr>
-    <tr><td>陰陽（器）</td><td>${STAGE_LABELS[inyoStage]}</td><td>構造・傷病の進行度</td></tr>
-    <tr><td>六道（連動）</td><td>${STAGE_LABELS[rikudoStage]}</td><td>制限方向と隣関節の代償から。治療対象は「制限方向の隣関節」から選ぶ</td></tr>
-    <tr><td>三焦（内部環境）</td><td>${shittyo.length? shittyo.map(k=>`${k}失調（${sansho[k]}点）`).join("・") : "失調なし"}</td><td>上${sansho["上焦"]}点／中${sansho["中焦"]}点／下${sansho["下焦"]}点</td></tr></table>`;
-  if(shittyo.length){
-    sHtml += shittyo.map(k=>`<p style="font-size:.82rem;margin:8px 0 0;">▶ <strong>${k}</strong>：${SANSHO_ADVICE[k]}</p>`).join("");
-  }
-  document.getElementById("summaryBox").innerHTML = sHtml;
-
-  // M list
-  document.getElementById("buiLabel").textContent = `${state.bui}／推奨 M${mLo}〜M${mHi}`;
-  const items = DB.filter(r=>r.bui===state.bui && r.m>=mLo && r.m<=mHi);
+function mItem(r, lo, hi){
+  const inRange = lo!==null && r.m>=lo && r.m<=hi;
+  return `<div class="m-item ${inRange?"rec":"dim"}">
+    <h4>［${r.jutsu}｜M${r.m}］${r.title}${inRange?'<span class="badge-rec">推奨範囲</span>':''}${r.m===5?'<span class="badge-m5">監督下のみ</span>':''}</h4>
+    <div class="meta">術前術後の検査：${r.kensa}<br>
+      ${r.taisho?`対象：${r.taisho}<br>`:""}施術：${r.houhou}<br>
+      ${r.keiketsu?`経穴：${r.keiketsu}${r.bante?`／${r.bante.match(/分/)?"時間":"番手"}：${r.bante}`:""}<br>`:""}合格基準：${r.gokaku}</div></div>`;
+}
+function listFor(cls, bui, lo, hi){
+  const items = DB.filter(r=>r.cls===cls && r.bui===bui);
   const order = {"手技":0,"鍼術":1,"灸術":2};
   items.sort((a,b)=>(order[a.jutsu]-order[b.jutsu])||(a.m-b.m));
-  document.getElementById("mList").innerHTML = items.map(r=>`
-    <div class="m-item">
-      <h4>［${r.jutsu}｜M${r.m}］${r.title}${r.status==="既存"?'<span class="badge-ok">マニュアル記載</span>':'<span class="badge-draft">たたき台（承認前）</span>'}</h4>
-      <div class="meta">
-        術前術後の検査：${r.kensa}<br>
-        ${r.byoi!=="―"?`対象にした病位：${r.byoi}<br>`:""}
-        施術：${r.sejutsu}<br>
-        ${r.keiketsu!=="―"?`経穴：${r.keiketsu}／番手：${r.bante}<br>`:""}
-        合格基準：${r.gokaku}
-      </div>
-    </div>`).join("") || "<p>該当する施術データがありません。</p>";
+  return items.map(r=>mItem(r,lo,hi)).join("");
+}
 
-  // patient explanation
-  const stageWords = [
-    "症状は初期の段階で、痛みの場所と原因が一致しているタイプです。まずは炎症を抑えて、表面の筋肉を整えるところから始めます。",
-    "症状は中期の段階で、痛みの場所だけでなく周囲の筋肉や隣の関節に負担が広がり始めています。動きの連動を取り戻す施術を組み合わせます。",
-    "症状は時間が経って深部に及んでいる段階です。患部だけでなく、隣の関節や身体の回復力そのものを底上げする計画的な施術が必要です。",
-  ];
-  let pHtml = `<p>${state.bui}部の状態を3つの視点（構造・動きの連動・身体の内部環境）で確認しました。</p><p>${stageWords[finalStage]}</p>`;
-  if(shittyo.length) pHtml += `<p>また、問診から${shittyo.join("・")}（${shittyo.map(k=>({"上焦":"睡眠・自律神経","中焦":"消化・代謝","下焦":"水分代謝・冷え"}[k])).join("・")}）の面でも回復力が下がっているサインが見られます。施術に加えて生活面のご提案もさせてください。</p>`;
-  if(red) pHtml = `<p class="warn">検査で医科での精査をおすすめすべき所見がありました。まず病院の受診をご案内ください。</p>` + pHtml;
-  document.getElementById("patientBox").innerHTML = pHtml;
+$("judgeBtn").onclick = ()=>{
+  const buiLabel = partLabel();
+  const groupLabel = GROUP_LABEL[state.bui];
+  const nearNote = state.part.near ? `<div class="note">「${state.part.label}」は正本の訓練プログラムに枠がないため、近接する「${groupLabel}」の枠を参考表示しています。</div>` : "";
+  const rec = branchRecommend();
+  const red = checked($("redArea")).map(c=>REDFLAGS[+c.dataset.i]);
+  const inSigns = checked($("inSignArea")).map(c=>IN_SIGNS[+c.dataset.i]);
+  const chronic = state.period===2 || state.course===2;
+  const useRikudo = state.branch.has("rikudo"), useSansho = state.branch.has("sansho");
+  const ptName = $("ptName").value.trim();
 
+  // ---- 陰陽 ----
+  let ph = null, tissue = null, dRange = null;
+  if(!state.excl){ ph = majorityPhase(state.phase); tissue = TISSUES.find(t=>t.key===state.tissue); dRange = inyoDiff(tissue.key, ph, chronic); }
+  let sHtml = `<p>${ptName?`<strong>${ptName}</strong> 様｜`:""}${buiLabel}｜訴え：${[...state.complaints].join("・")||"―"}｜${state.period!==null?PERIODS[state.period]:"期間未入力"}${state.course!==null?`｜${COURSES[state.course]}`:""}</p>`;
+  if(red.length) sHtml += `<div class="note red">⚠️ レッドフラッグ：${red.join("／")}。施術より医療評価を優先してください。以下は参考表示です。</div>`;
+  if(state.excl){
+    sHtml += `<p><span class="badge bg">対象外</span>${state.excl}</p><div class="note warn">${EXCLUDED.find(x=>x.name===state.excl).note}</div>`;
+  } else {
+    sHtml += `<p>陰陽：<span class="badge bn">${tissue.name}</span><span class="badge b${ph}">${PHASES[ph]}</span> 推奨難度 <strong>M${dRange[0]}〜M${dRange[1]}</strong>（たたき台）</p>`;
+    sHtml += `<table class="santable"><tr><th>時期の所見</th><td>${PHASE_Q.map((q,i)=>`${q.label.split("（")[0]}＝${PHASE_SHORT[state.phase[i]]}`).join("／")}（4項目の多数決、同数は早い時期）</td></tr>
+      <tr><th>治療目標</th><td>${PHASE_GOAL[ph]}</td></tr><tr><th>確認指標</th><td>${PHASE_INDEX[ph]}</td></tr>
+      ${inSigns.length?`<tr><th>陰のサイン</th><td>${inSigns.join("／")}。炎症処置の枠外。施術方法が異なる</td></tr>`:""}
+      <tr><th>分岐</th><td>${state.branch.has("none")?"陰陽のみで終える":[useRikudo?"六道":null,useSansho?"三焦":null].filter(Boolean).join("＋")+"へ進む"}（推奨：${rec.rikudo||rec.sansho?[rec.rikudo?"六道":null,rec.sansho?"三焦":null].filter(Boolean).join("＋"):"陰陽のみ"}）</td></tr></table>`;
+  }
+  $("summaryBox").innerHTML = sHtml;
+
+  if(state.excl){ $("inyoResult").classList.add("hidden"); }
+  else {
+    $("inyoResult").classList.remove("hidden");
+    const P = P_TABLE[tissue.key][ph], PL = PLAN[tissue.key][ph];
+    $("inyoBox").innerHTML = `
+      <h3>選択を推奨する治療法（P）｜${tissue.name}×${PHASES[ph]}</h3>
+      <table class="santable"><tr><th>手技</th><td>${P.te}</td></tr><tr><th>鍼術</th><td>${P.hari}</td></tr><tr><th>灸術</th><td>${P.kyu}</td></tr></table>
+      <h3>時期の基本方針と避ける処置</h3>
+      <table class="santable"><tr><th>物療・運動</th><td>${PL.b}</td></tr><tr><th>鍼</th><td>${PL.h}</td></tr><tr><th>灸</th><td>${PL.k}</td></tr></table>
+      <details><summary>患者の訴え（S）早見表と照合</summary><div class="note">${tissue.name}×${PHASES[ph]}の典型：${S_TABLE[tissue.key][ph]}<br>他の時期：${PHASES.map((p,i)=>i===ph?null:`${PHASE_SHORT[i]}＝${S_TABLE[tissue.key][i]}`).filter(Boolean).join("／")}</div></details>
+      <details><summary>難度M1〜M5の意味と、この判定の根拠（たたき台）</summary><div class="note">${DIFF_DEF.map((d,i)=>`M${i+1}：${d}`).join("<br>")}<br><br>根拠：組織の下限（筋M1／筋膜M2／関節・神経・靭帯M3）＋時期（急性期＝下限のみ／拘縮期＝下限〜＋1／回復期＝＋1〜＋2）。3ヶ月以上・再発はM4〜M5。</div></details>`;
+    const hasFrame = DB.some(r=>r.cls==="陰陽" && r.bui===state.bui);
+    $("inyoBuiLabel").textContent = `${groupLabel}／推奨 M${dRange[0]}〜M${dRange[1]}`;
+    $("inyoList").innerHTML = nearNote + (hasFrame ? listFor("陰陽", state.bui, dRange[0], dRange[1]) : `<div class="note warn">陰陽分類の訓練プログラムに「${groupLabel}」の枠はまだありません（正本は頸椎・肩・腰部・膝・足関節の5部位）。隣接する部位の枠と、上の治療法（P）を参考にしてください。</div>`);
+  }
+
+  // ---- 六道 ----
+  let rk = null;
+  if(useRikudo){
+    const abn = RHYTHMS.filter((r,i)=>state.rhythm[i]===1||state.rhythm[i]===2);
+    const pain = RHYTHMS.some((r,i)=>state.rhythm[i]===2);
+    const rr = rikudoDiff(abn.length, pain);
+    rk = {abn: abn.map(r=>`M${r.m}${r.name}`), pain, range: rr, main: state.mainRhythm!==null?`M${RHYTHMS[state.mainRhythm].m} ${RHYTHMS[state.mainRhythm].name}`:""};
+    $("rikudoResult").classList.remove("hidden");
+    $("rikudoBox").innerHTML = `
+      <p>乱れたリズム：${abn.length?abn.map(r=>`<span class="badge ${state.rhythm[RHYTHMS.indexOf(r)]===2?"b0":"b1"}">M${r.m} ${r.name}</span>`).join(""):"<span class='badge b2'>乱れなし</span>"}${rk.main?`　最も大きい制限：<strong>${rk.main}</strong>`:""}</p>
+      <table class="santable"><tr><th>隣接関節</th><td>${NEIGHBORS[state.bui]}（この中から「リズムが途切れる関節」を1つ選び、1つだけ介入して同じ条件で再検査）</td></tr>
+      <tr><th>推奨難度</th><td>${rr?`M${rr[0]}〜M${rr[1]}（乱れ${abn.length}つ${pain?"・発痛あり→鑑別を伴うのでM3以上":""}。たたき台）`:"六道の介入対象なし（陰陽に戻る）"}</td></tr>
+      <tr><th>記録</th><td>ROMだけでなく、痛み・速度・滑らかさ・出力・呼吸の変化。合格は主訴動作の改善と再現性</td></tr></table>`;
+    $("rikudoBuiLabel").textContent = `${groupLabel}${rr?`／推奨 M${rr[0]}〜M${rr[1]}`:""}`;
+    $("rikudoList").innerHTML = nearNote + listFor("六道", state.bui, rr?rr[0]:null, rr?rr[1]:null);
+  } else $("rikudoResult").classList.add("hidden");
+
+  // ---- 三焦 ----
+  let ss = null;
+  if(useSansho){
+    const hits = checked($("sanshoArea")).map(c=>SANSHO_Q[+c.dataset.i]);
+    const warn = checked($("sanshoWarnArea")).map(c=>SANSHO_WARN[+c.dataset.i]);
+    const cnt = {"食事":0,"睡眠":0,"排泄":0}; hits.forEach(h=>cnt[h.g]++);
+    let main = state.mainFunc; if(!main){ main = Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a])[0]; if(cnt[main]===0) main=null; }
+    const multi = Object.values(cnt).filter(v=>v>0).length>=2;
+    const sr = sanshoDiff(hits.length, multi, chronic);
+    ss = {hits: hits.map(h=>h.t), warn, cnt, main, range: sr};
+    $("sanshoResult").classList.remove("hidden");
+    $("sanshoBox").innerHTML = `
+      ${warn.length?`<div class="note red">⚠️ 警告徴候：${warn.join("／")}。鍼灸より医療機関での評価を優先。</div>`:""}
+      <p>該当：食事${cnt["食事"]}／睡眠${cnt["睡眠"]}／排泄${cnt["排泄"]}　最も妨げている機能：${main?`<span class="badge bn">${main}</span>`:"<span class='badge b2'>該当なし</span>"}</p>
+      ${main?`<table class="santable"><tr><th>関連する焦</th><td>${SANSHO_SHO[main]}</td></tr><tr><th>追う指標</th><td>${SANSHO_INDEX[main]}</td></tr>
+      <tr><th>推奨難度</th><td>${sr?`M${sr[0]}〜M${sr[1]}（該当${hits.length}項目${multi?"・複数機能に波及":""}${chronic?"・長期化":""}。たたき台）`:"―"}</td></tr>
+      <tr><th>進め方</th><td>鍼灸と生活指導を同時に増やしすぎない。一つの介入後に同じ指標で再評価し、1〜4週間の記録で回復力を判断</td></tr></table>`:"<div class='note'>三焦の介入対象なし。陰陽（＋六道）で完結。</div>"}`;
+    $("sanshoBuiLabel").textContent = `${groupLabel}${sr?`／推奨 M${sr[0]}〜M${sr[1]}`:""}`;
+    $("sanshoList").innerHTML = nearNote + listFor("三焦", state.bui, sr?sr[0]:null, sr?sr[1]:null);
+  } else $("sanshoResult").classList.add("hidden");
+
+  // ---- 患者説明 ----
+  let pHtml = "";
+  if(red.length) pHtml += `<p class="warn">検査で医科での精査をおすすめすべき所見がありました。まず病院の受診をご案内ください。</p>`;
+  if(state.excl){ pHtml += `<p>${buiLabel}の症状は、今回の局所処置の枠組み（筋・筋膜・関節・神経・靭帯の炎症）とは別のものと考えられます。電気療法などで痛みを和らげながら、必要に応じて医療機関での評価もご案内します。</p>`; }
+  else {
+    const tw = {"筋":"筋肉","筋膜":"筋肉を包む膜（筋膜）","関節":"関節のクッション（滑液包・関節）","神経":"神経の周り","靭帯":"靭帯"}[tissue.key];
+    const pw = ["いま炎症が強い時期なので、まず患部を守って痛みを落ち着かせることが最優先です。強い刺激や無理な伸ばしは避け、痛みを増やさない範囲で動かすところから始めます。",
+      "炎症は落ち着き、硬さや動かしにくさが残っている時期です。痛みを増やさずに動きを取り戻し、日常の動作を少しずつ練習していきます。",
+      "日常の痛みは減り、負荷に耐える力を取り戻す時期です。運動や生活動作への復帰を主役に、残る痛みや張りに施術を合わせていきます。"][ph];
+    pHtml += `<p>${buiLabel}の症状は、${tw}の炎症が「${PHASE_SHORT[ph]}」にあたる状態と考えられます。${pw}</p>`;
+    if(useRikudo && rk && rk.abn.length) pHtml += `<p>また、体の動きのリズムを見ると${rk.abn.join("・")}に乱れがあり、${buiLabel}に負担をかけています。患部だけでなく隣の関節（${NEIGHBORS[state.bui]}）から動きを整える施術を組み合わせます。</p>`;
+    if(useSansho && ss && ss.main) pHtml += `<p>さらに問診から、${ss.main}の面で回復力が下がっているサインが見られます。施術に加えて、${ss.main}の記録と生活面のご提案もさせてください。</p>`;
+  }
+  $("patientBox").innerHTML = pHtml;
+
+  // ---- 記録用 ----
   state.lastResult = {
-    date: localStamp(),
-    bui: state.bui, inyo: STAGE_LABELS[inyoStage], rikudo: STAGE_LABELS[rikudoStage],
-    final: STAGE_LABELS[finalStage], mRange: `M${mLo}-M${mHi}`,
-    sanshoU: sansho["上焦"], sanshoC: sansho["中焦"], sanshoG: sansho["下焦"],
-    shittyo: shittyo.join("・")||"なし", red: red?"あり":"なし",
+    v: 2, app: APP_VERSION, date: localStamp(),
+    ptName, bui: state.part.label, side: state.side||"", group: groupLabel, complaints: [...state.complaints].join("・")||"",
+    period: state.period!==null?PERIODS[state.period]:"", trigger: state.trigger||"", course: state.course!==null?COURSES[state.course]:"",
+    tissue: state.excl? `対象外：${state.excl}` : tissue.name, phase: ph!==null?PHASES[ph]:"",
+    inSigns: inSigns.join("／")||"なし", red: red.join("／")||"なし",
+    inyoAns: state.excl? "" : PHASE_Q.map((q,i)=>`${q.label.split("（")[0]}=${q.opts[state.phase[i]]}`).join("／"),
+    inyoM: dRange?`M${dRange[0]}-M${dRange[1]}`:"",
+    branch: state.branch.has("none")?"陰陽のみ":[useRikudo?"六道":null,useSansho?"三焦":null].filter(Boolean).join("＋"),
+    branchRec: rec.rikudo||rec.sansho?[rec.rikudo?"六道":null,rec.sansho?"三焦":null].filter(Boolean).join("＋"):"陰陽のみ",
+    rikudoAns: useRikudo? RHYTHMS.map((r,i)=>state.rhythm[i]===null?null:`M${r.m}${r.name}=${RHYTHM_OPTS[state.rhythm[i]]}`).filter(Boolean).join("／") : "",
+    rikudoN: useRikudo&&rk? rk.abn.length : "", rikudoMain: useRikudo&&rk? rk.main : "", rikudoM: useRikudo&&rk&&rk.range?`M${rk.range[0]}-M${rk.range[1]}`:"",
+    sanshoAns: useSansho&&ss? ss.hits.join("／")||"なし" : "", sanshoWarn: useSansho&&ss? ss.warn.join("／")||"なし" : "",
+    sanshoMain: useSansho&&ss? (ss.main||"該当なし") : "", sanshoM: useSansho&&ss&&ss.range?`M${ss.range[0]}-M${ss.range[1]}`:"",
   };
-  document.getElementById("resultArea").style.display = "block";
-  document.getElementById("resultArea").scrollIntoView({behavior:"smooth"});
+  $("resultArea").style.display = "block";
+  $("resultArea").scrollIntoView({behavior:"smooth"});
   updateLogCount();
 };
 
 // ---- log ----
-const API_URL = "https://script.google.com/macros/s/AKfycbzBPkI-XshHFTzRn-XqJR4iO_ffY2KxcOqprgqr3zOmyKTlpg-B-dVqeHaKSS5c4v-QQQ/exec";   // GAS Web App（三類法③評価ログ_運用テスト にバインド）
-const LS_KEY = "sanruiho_logs_v1";
-const LS_UNSENT = "sanruiho_unsent_v1";
+const API_URL = "https://script.google.com/macros/s/AKfycbzBPkI-XshHFTzRn-XqJR4iO_ffY2KxcOqprgqr3zOmyKTlpg-B-dVqeHaKSS5c4v-QQQ/exec";   // GAS Web App（三類法③評価ログ にバインド。v2は「ログv2」タブへ）
+const LS_KEY = "sanruiho_logs_v2";
+const LS_UNSENT = "sanruiho_unsent_v2";
+const LS_UNSENT_V1 = "sanruiho_unsent_v1";
 const LS_NAME = "sanruiho_recorder";
 function localStamp(){ const d=new Date(), z=n=>String(n).padStart(2,"0"); return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())} ${z(d.getHours())}:${z(d.getMinutes())}`; }
 function getLogs(){ try{ return JSON.parse(localStorage.getItem(LS_KEY)||"[]"); }catch(e){ return []; } }
-function getUnsent(){ try{ return JSON.parse(localStorage.getItem(LS_UNSENT)||"[]"); }catch(e){ return []; } }
-function setUnsent(a){ localStorage.setItem(LS_UNSENT, JSON.stringify(a)); }
+function getUnsent(k){ try{ return JSON.parse(localStorage.getItem(k||LS_UNSENT)||"[]"); }catch(e){ return []; } }
+function setUnsent(a,k){ localStorage.setItem(k||LS_UNSENT, JSON.stringify(a)); }
 function updateLogCount(){
-  const u = getUnsent().length;
-  document.getElementById("logCount").textContent = `この端末の控え：${getLogs().length}件` + (u? `（うち未送信 ${u}件：次回送信時に再送します）` : "");
+  const u = getUnsent().length + getUnsent(LS_UNSENT_V1).length;
+  $("logCount").textContent = `この端末の控え：${getLogs().length}件` + (u? `（うち未送信 ${u}件：次回送信時に再送します）` : "");
 }
-function setStatus(msg, ok){ const el=document.getElementById("sendStatus"); el.textContent=msg; el.style.color = ok===false ? "#b00020" : (ok ? "#0a7a2f" : ""); }
-
-// フィードバック欄
+function setStatus(msg, ok){ const e=$("sendStatus"); e.textContent=msg; e.style.color = ok===false ? "#b00020" : (ok ? "#0a7a2f" : ""); }
 let fbValid = "";
 document.querySelectorAll("#fbValid button").forEach(b=>{
   b.onclick = ()=>{ fbValid=b.dataset.v; document.querySelectorAll("#fbValid button").forEach(c=>c.classList.remove("sel")); b.classList.add("sel"); };
 });
-document.getElementById("fbName").value = localStorage.getItem(LS_NAME) || "";
-
+$("fbName").value = localStorage.getItem(LS_NAME) || "";
 function buildPayload(){
-  const r = state.lastResult;
-  const checked = [...document.querySelectorAll("#sanshoArea input:checked")].map(c=>SANSHO_Q[+c.dataset.i].t);
-  return Object.assign({}, r, {
-    recorder: document.getElementById("fbName").value.trim(),
-    inyoAns: INYO_Q.map((q,i)=>`${q.label.split("（")[0]}=${q.opts[state.inyo[i]]}`).join("／"),
-    rikudoAns: RIKUDO_Q.map((q,i)=>`${q.label.split("（")[0]}=${q.opts[state.rikudo[i]]}`).join("／"),
-    sanshoChecked: checked.join("／") || "なし",
-    fbValid, fbStage: document.getElementById("fbStage").value, fbM: document.getElementById("fbM").value,
-    comment: document.getElementById("fbComment").value.trim(),
+  return Object.assign({}, state.lastResult, {
+    recorder: $("fbName").value.trim(),
+    fbValid, fbTissue: $("fbTissue").value, fbPhase: $("fbPhase").value, fbM: $("fbM").value,
+    comment: $("fbComment").value.trim(),
   });
 }
 async function postOne(p){
@@ -361,48 +574,51 @@ async function postOne(p){
   return j;
 }
 async function flushUnsent(){
-  const q = getUnsent(); if(!q.length) return 0;
-  const rest = []; let sent = 0;
-  for(const p of q){ try{ await postOne(p); sent++; }catch(e){ rest.push(p); } }
-  setUnsent(rest); return sent;
+  let sent = 0;
+  for(const k of [LS_UNSENT, LS_UNSENT_V1]){
+    const q = getUnsent(k); if(!q.length) continue;
+    const rest = [];
+    for(const p of q){ try{ await postOne(p); sent++; }catch(e){ rest.push(p); } }
+    setUnsent(rest, k);
+  }
+  return sent;
 }
-document.getElementById("sendLog").onclick = async ()=>{
-  if(!state.lastResult){ alert("先に「判定する」を押してください"); return; }
-  const name = document.getElementById("fbName").value.trim();
-  if(!name){ alert("記録者名を入れてください"); document.getElementById("fbName").focus(); return; }
+$("sendLog").onclick = async ()=>{
+  if(!state.lastResult){ alert("先に「評価を整理する」を押してください"); return; }
+  const name = $("fbName").value.trim();
+  if(!name){ alert("記録者名を入れてください"); $("fbName").focus(); return; }
   if(!fbValid){ alert("「この判定は妥当？」を選んでください"); return; }
   localStorage.setItem(LS_NAME, name);
   const p = buildPayload();
   const logs = getLogs(); logs.push(p); localStorage.setItem(LS_KEY, JSON.stringify(logs));
-  const btn = document.getElementById("sendLog"); btn.disabled = true; setStatus("送信中…");
+  const btn = $("sendLog"); btn.disabled = true; setStatus("送信中…");
   try{
-    if(!API_URL) throw new Error("API_URL未設定");
     const j = await postOne(p);
     const extra = await flushUnsent();
-    setStatus(`送信しました（スプレッドシート ${j.count + extra}件目）` + (extra? `＋未送信分${extra}件を再送` : ""), true);
-    document.getElementById("fbComment").value = "";
+    setStatus(`送信しました（ログv2 ${j.count}件目）` + (extra? `＋未送信分${extra}件を再送` : ""), true);
+    $("fbComment").value = "";
   }catch(e){
     const u = getUnsent(); u.push(p); setUnsent(u);
     setStatus("送信できませんでした（通信環境を確認してください）。この端末に保存したので、次回送信時に自動で再送します。", false);
   }
   btn.disabled = false; updateLogCount();
 };
-document.getElementById("dlLog").onclick = ()=>{
+const CSV_COLS = [["評価日時","date"],["記録者","recorder"],["患者名","ptName"],["部位","bui"],["左右","side"],["主訴","complaints"],["発症期間","period"],["きっかけ","trigger"],["経過","course"],["対象組織","tissue"],["時期","phase"],["陰のサイン","inSigns"],["レッドフラッグ","red"],["陰陽の回答","inyoAns"],["推奨難度(陰陽)","inyoM"],["分岐","branch"],["分岐の推奨","branchRec"],["六道の回答","rikudoAns"],["六道の乱れ数","rikudoN"],["最も大きい制限","rikudoMain"],["推奨難度(六道)","rikudoM"],["三焦の回答","sanshoAns"],["三焦の警告","sanshoWarn"],["最も妨げている機能","sanshoMain"],["推奨難度(三焦)","sanshoM"],["判定は妥当か","fbValid"],["正しいと思う組織","fbTissue"],["正しいと思う時期","fbPhase"],["正しいと思うM","fbM"],["コメント","comment"]];
+$("dlLog").onclick = ()=>{
   const logs = getLogs();
   if(!logs.length){ alert("控えがありません"); return; }
-  const head = ["評価日時","記録者","部位","陰陽","六道","確定病位","推奨M","上焦点","中焦点","下焦点","失調","レッドフラッグ","判定は妥当か","正しいと思う病位","正しいと思うM","コメント"];
   const q = v => `"${String(v==null?"":v).replace(/"/g,'""')}"`;
-  const rows = logs.map(l=>[l.date,l.recorder,l.bui,l.inyo,l.rikudo,l.final,l.mRange,l.sanshoU,l.sanshoC,l.sanshoG,l.shittyo,l.red,l.fbValid,l.fbStage,l.fbM,l.comment].map(q));
-  const csv = "﻿" + [head.map(q), ...rows].map(r=>r.join(",")).join("\n");
+  const rows = logs.map(l=>CSV_COLS.map(c=>q(l[c[1]])));
+  const csv = "﻿" + [CSV_COLS.map(c=>q(c[0])), ...rows].map(r=>r.join(",")).join("\n");
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([csv],{type:"text/csv"}));
-  a.download = "sanruiho_logs.csv"; a.click();
+  a.download = "sanruiho_logs_v2.csv"; a.click();
 };
-document.getElementById("clearLog").onclick = ()=>{
+$("clearLog").onclick = ()=>{
   if(confirm("この端末の控えを全て削除しますか？（スプレッドシートに送信済みの分は消えません）")){ localStorage.removeItem(LS_KEY); localStorage.removeItem(LS_UNSENT); updateLogCount(); }
 };
-updateLogCount();
-if(API_URL) flushUnsent().then(n=>{ if(n) { setStatus(`未送信だった${n}件を送信しました`, true); updateLogCount(); } });
+updateLogCount(); refresh();
+flushUnsent().then(n=>{ if(n) { setStatus(`未送信だった${n}件を送信しました`, true); updateLogCount(); } });
 </script>
 </body>
 </html>

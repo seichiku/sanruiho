@@ -448,6 +448,7 @@ $("judgeBtn").onclick = ()=>{
   } else {
     sHtml += `<p>陰陽：<span class="badge bn">${tissue.name}</span><span class="badge b${ph}">${PHASES[ph]}</span> 推奨難度 <strong>M${dRange[0]}〜M${dRange[1]}</strong>（たたき台）</p>`;
     sHtml += `<table class="santable"><tr><th>時期の所見</th><td>${PHASE_Q.map((q,i)=>`${q.label.split("（")[0]}＝${PHASE_SHORT[state.phase[i]]}`).join("／")}（4項目の多数決、同数は早い時期）</td></tr>
+      <tr><th>提案する施術</th><td>［手技］${P_TABLE[tissue.key][ph].te}<br>［鍼術］${P_TABLE[tissue.key][ph].hari}<br>［灸術］${P_TABLE[tissue.key][ph].kyu}<br><span class="sub">（${tissue.name}×${PHASES[ph]}／選択を推奨する治療法 P）</span></td></tr>
       <tr><th>治療目標</th><td>${PHASE_GOAL[ph]}</td></tr><tr><th>確認指標</th><td>${PHASE_INDEX[ph]}</td></tr>
       ${inSigns.length?`<tr><th>陰のサイン</th><td>${inSigns.join("／")}。炎症処置の枠外。施術方法が異なる</td></tr>`:""}
       <tr><th>分岐</th><td>${state.branch.has("none")?"陰陽のみで終える":[useRikudo?"六道":null,useSansho?"三焦":null].filter(Boolean).join("＋")+"へ進む"}（推奨：${rec.rikudo||rec.sansho?[rec.rikudo?"六道":null,rec.sansho?"三焦":null].filter(Boolean).join("＋"):"陰陽のみ"}）</td></tr></table>`;

@@ -171,15 +171,10 @@
     <div class="card" id="inyoResult">
       <h2>陰陽｜推奨される治療法と時期の方針</h2>
       <div id="inyoBox"></div>
-      <h3>陰陽の訓練プログラム枠（<span id="inyoBuiLabel"></span>）</h3>
-      <p class="sub">評価した組織に合い、推奨難度の範囲（たたき台）に入る枠だけを表示。<span class="warn">施術者本人が合格している難度の範囲内で選択。M5は指導者の監督下。</span></p>
-      <div id="inyoList"></div>
     </div>
     <div class="card hidden" id="rikudoResult">
       <h2>六道｜乱れたリズムと隣接関節への技法</h2>
       <div id="rikudoBox"></div>
-      <h3>六道の訓練プログラム枠（<span id="rikudoBuiLabel"></span>）</h3>
-      <div id="rikudoList"></div>
     </div>
     <div class="card hidden" id="sanshoResult">
       <h2>三焦｜回復を妨げている機能と反射点への技法</h2>
@@ -427,15 +422,13 @@ function mItem(r){
       ${r.taisho?`対象：${r.taisho}<br>`:""}施術：${r.houhou}<br>
       ${r.keiketsu?`経穴：${r.keiketsu}${r.bante?`／${r.bante.match(/分/)?"時間":"番手"}：${r.bante}`:""}<br>`:""}合格基準：${r.gokaku}</div></div>`;
 }
-// 推奨難度の範囲内の枠だけを表示。tissue を渡すと（陰陽）、評価した組織と一致する枠に絞る。
-function listFor(cls, bui, lo, hi, tissue){
+// 推奨難度の範囲内の枠だけを表示
+function listFor(cls, bui, lo, hi){
   if(lo===null) return "";
   return ["手技","鍼術","灸術"].map(j=>{
-    const all = DB.filter(r=>r.cls===cls && r.bui===bui && r.jutsu===j && (!tissue || FRAME_TISSUE[bui][j][r.m-1].includes(tissue)));
-    const hit = all.filter(r=>r.m>=lo && r.m<=hi).sort((a,b)=>a.m-b.m);
+    const hit = DB.filter(r=>r.cls===cls && r.bui===bui && r.jutsu===j && r.m>=lo && r.m<=hi).sort((a,b)=>a.m-b.m);
     if(hit.length) return hit.map(mItem).join("");
-    const other = all.length ? `（${tissue}の枠は ${all.map(r=>`M${r.m} ${r.title}`).join("・")} で推奨難度の範囲外）` : (tissue ? `（${tissue}に対応する枠なし）` : "");
-    return `<div class="note">${j}：推奨難度 M${lo}〜M${hi} に合う枠はありません${other}。上の治療法（P）を参考にしてください。</div>`;
+    return `<div class="note">${j}：推奨難度 M${lo}〜M${hi} に合う枠はありません。</div>`;
   }).join("");
 }
 
@@ -461,11 +454,7 @@ $("judgeBtn").onclick = ()=>{
     sHtml += `<p><span class="badge bg">対象外</span>${state.excl}</p><div class="note warn">${EXCLUDED.find(x=>x.name===state.excl).note}</div>`;
   } else {
     sHtml += `<p>陰陽：<span class="badge bn">${tissue.name}</span><span class="badge b${ph}">${PHASES[ph]}</span> 推奨難度 <strong>M${dRange[0]}〜M${dRange[1]}</strong>（たたき台）</p>`;
-    sHtml += `<table class="santable"><tr><th>時期の所見</th><td>${PHASE_Q.map((q,i)=>`${q.label.split("（")[0]}＝${PHASE_SHORT[state.phase[i]]}`).join("／")}（4項目の多数決、同数は早い時期）</td></tr>
-      <tr><th>提案する施術</th><td>［手技］${P_TABLE[tissue.key][ph].te}<br>［鍼術］${P_TABLE[tissue.key][ph].hari}<br>［灸術］${P_TABLE[tissue.key][ph].kyu}<br><span class="sub">（${tissue.name}×${PHASES[ph]}／選択を推奨する治療法 P）</span></td></tr>
-      <tr><th>治療目標</th><td>${PHASE_GOAL[ph]}</td></tr><tr><th>確認指標</th><td>${PHASE_INDEX[ph]}</td></tr>
-      ${inSigns.length?`<tr><th>陰のサイン</th><td>${inSigns.join("／")}。炎症処置の枠外。施術方法が異なる</td></tr>`:""}
-      <tr><th>分岐</th><td>${state.branch.has("none")?"陰陽のみで終える":[useRikudo?"六道":null,useSansho?"三焦":null].filter(Boolean).join("＋")+"へ進む"}（推奨：${rec.rikudo||rec.sansho?[rec.rikudo?"六道":null,rec.sansho?"三焦":null].filter(Boolean).join("＋"):"陰陽のみ"}）</td></tr></table>`;
+    if(inSigns.length) sHtml += `<div class="note">陰のサイン：${inSigns.join("／")}。炎症処置の枠外。施術方法が異なる</div>`;
   }
   $("summaryBox").innerHTML = sHtml;
 
@@ -480,8 +469,6 @@ $("judgeBtn").onclick = ()=>{
       <table class="santable"><tr><th>物療・運動</th><td>${PL.b}</td></tr><tr><th>鍼</th><td>${PL.h}</td></tr><tr><th>灸</th><td>${PL.k}</td></tr></table>
       <details><summary>患者の訴え（S）早見表と照合</summary><div class="note">${tissue.name}×${PHASES[ph]}の典型：${S_TABLE[tissue.key][ph]}<br>他の時期：${PHASES.map((p,i)=>i===ph?null:`${PHASE_SHORT[i]}＝${S_TABLE[tissue.key][i]}`).filter(Boolean).join("／")}</div></details>
       <details><summary>難度M1〜M5の意味と、この判定の根拠（たたき台）</summary><div class="note">${DIFF_DEF.map((d,i)=>`M${i+1}：${d}`).join("<br>")}<br><br>根拠：組織の下限（筋M1／筋膜M2／関節・神経・靭帯M3）＋時期（急性期＝下限のみ／拘縮期＝下限〜＋1／回復期＝＋1〜＋2）。3ヶ月以上・再発はM4〜M5。</div></details>`;
-    $("inyoBuiLabel").textContent = `${groupLabel}／${tissue.key}／推奨 M${dRange[0]}〜M${dRange[1]}`;
-    $("inyoList").innerHTML = perGroup(g=> DB.some(r=>r.cls==="陰陽" && r.bui===g) ? listFor("陰陽", g, dRange[0], dRange[1], tissue.key) : `<div class="note warn">陰陽分類の訓練プログラムに「${GROUP_LABEL[g]}」の枠はまだありません（正本は頸椎・肩・腰部・膝・足関節の5部位）。上の治療法（P）を参考にしてください。</div>`);
   }
 
   // ---- 六道 ----
@@ -497,8 +484,6 @@ $("judgeBtn").onclick = ()=>{
       <table class="santable"><tr><th>隣接関節</th><td>${neighbors}（この中から「リズムが途切れる関節」を1つ選び、1つだけ介入して同じ条件で再検査）</td></tr>
       <tr><th>推奨難度</th><td>${rr?`M${rr[0]}〜M${rr[1]}（乱れ${abn.length}つ${pain?"・発痛あり→鑑別を伴うのでM3以上":""}。たたき台）`:"六道の介入対象なし（陰陽に戻る）"}</td></tr>
       <tr><th>記録</th><td>ROMだけでなく、痛み・速度・滑らかさ・出力・呼吸の変化。合格は主訴動作の改善と再現性</td></tr></table>`;
-    $("rikudoBuiLabel").textContent = `${groupLabel}${rr?`／推奨 M${rr[0]}〜M${rr[1]}`:""}`;
-    $("rikudoList").innerHTML = rr ? perGroup(g=>listFor("六道", g, rr[0], rr[1])) : `<div class="note">運動リズムの乱れがないため、六道の枠は表示しません。</div>`;
   } else $("rikudoResult").classList.add("hidden");
 
   // ---- 三焦 ----

@@ -99,7 +99,6 @@
       <div class="grp">【体幹】</div><div class="bui-grid" id="buiGrid0"></div>
       <div class="grp">【上肢】</div><div class="bui-grid" id="buiGrid1"></div>
       <div class="grp">【下肢】</div><div class="bui-grid" id="buiGrid2"></div>
-      <div class="sub" id="partNote" style="margin-top:6px;"></div>
     </div>
     <div class="q"><div class="label">訴えの種類（当てはまるものすべて）</div><div class="opts" id="complaintOpts"></div></div>
     <div class="q"><div class="label">発症からの期間（参考。日数だけで時期を決めない）</div><div class="opts" id="periodOpts"></div></div>
@@ -178,8 +177,6 @@
     <div class="card hidden" id="sanshoResult">
       <h2>三焦｜回復を妨げている機能と反射点への技法</h2>
       <div id="sanshoBox"></div>
-      <h3>三焦の訓練プログラム枠（<span id="sanshoBuiLabel"></span>）</h3>
-      <div id="sanshoList"></div>
     </div>
     <div class="card">
       <h2>患者様への説明たたき台</h2>
@@ -226,8 +223,7 @@
 <footer>成竹鍼灸整骨院グループ｜三類法 評価支援ツール v0.2（社内運用テスト）｜正本：Notion「三類法」（スタッフ共有）＋スプシ①訓練プログラム枠／②判定ロジック表</footer>
 
 <!-- ?v= は更新時に変える（古いキャッシュの theory.js と混ざらないように） -->
-<script src="theory.js?v=20261026c"></script>
-<script src="data.js?v=20261026c"></script>
+<script src="theory.js?v=20261026d"></script>
 <script>
 const APP_VERSION = "v0.2";
 function el(html){ const d=document.createElement("div"); d.innerHTML=html.trim(); return d.firstChild; }
@@ -271,13 +267,11 @@ PARTS.forEach(p=>{
     state.parts.sort((a,b)=>PARTS.indexOf(a)-PARTS.indexOf(b));
     state.groups = [...new Set(state.parts.map(q=>q.group))];
     $("neighborTxt").textContent = state.groups.map(g=>NEIGHBORS[g]).join("／");
-    $("partNote").textContent = state.groups.length ? `訓練プログラム枠：${state.groups.map(g=>GROUP_LABEL[g]).join("・")}` + (state.parts.some(q=>q.near) ? `（${state.parts.filter(q=>q.near).map(q=>q.label).join("・")}は正本に枠がないため近接区分を参考表示）` : "") : "";
     refresh();
   };
   $(ZONE_GRID[p.zone]).appendChild(btn);
 });
 function partLabel(){ return state.parts.map(p=>p.label).join("・"); }
-function nearNote(g){ const n = state.parts.filter(p=>p.near && p.group===g); return n.length ? `<div class="note">「${n.map(p=>p.label).join("・")}」は正本の訓練プログラムに枠がないため、近接する「${GROUP_LABEL[g]}」の枠を参考表示しています。</div>` : ""; }
 COMPLAINTS.forEach(c=>{
   const b = el(`<button>${c.t}</button>`);
   b.onclick = ()=>{ if(state.complaints.has(c.t)){ state.complaints.delete(c.t); b.classList.remove("sel"); } else { state.complaints.add(c.t); b.classList.add("sel"); } updateTissueHint(); refresh(); };
@@ -433,29 +427,11 @@ function refresh(){
   $("judgeBtn").disabled = !ok; $("judgeMsg").textContent = msg;
 }
 
-function mItem(r){
-  return `<div class="m-item rec">
-    <h4>［${r.jutsu}｜M${r.m}］${r.title}${r.m===5?'<span class="badge-m5">監督下のみ</span>':''}</h4>
-    <div class="meta">術前術後の検査：${r.kensa}<br>
-      ${r.taisho?`対象：${r.taisho}<br>`:""}施術：${r.houhou}<br>
-      ${r.keiketsu?`経穴：${r.keiketsu}${r.bante?`／${r.bante.match(/分/)?"時間":"番手"}：${r.bante}`:""}<br>`:""}合格基準：${r.gokaku}</div></div>`;
-}
-// 推奨難度の範囲内の枠だけを表示
-function listFor(cls, bui, lo, hi){
-  if(lo===null) return "";
-  return ["手技","鍼術","灸術"].map(j=>{
-    const hit = DB.filter(r=>r.cls===cls && r.bui===bui && r.jutsu===j && r.m>=lo && r.m<=hi).sort((a,b)=>a.m-b.m);
-    if(hit.length) return hit.map(mItem).join("");
-    return `<div class="note">${j}：推奨難度 M${lo}〜M${hi} に合う枠はありません。</div>`;
-  }).join("");
-}
 
 $("judgeBtn").onclick = ()=>{
   const buiLabel = partLabel();
   const groupLabel = state.groups.map(g=>GROUP_LABEL[g]).join("・");
   const neighbors = state.groups.map(g=>NEIGHBORS[g]).join("／");
-  // 部位の区分ごとに枠を並べる（区分が2つ以上なら見出しを付ける）
-  const perGroup = f => state.groups.map(g=>(state.groups.length>1?`<div class="grp">【${GROUP_LABEL[g]}】</div>`:"") + nearNote(g) + f(g)).join("");
   const rec = branchRecommend();
   const red = checked($("redArea")).map(c=>REDFLAGS[+c.dataset.i]);
   const inSigns = checked($("inSignArea")).map(c=>IN_SIGNS[+c.dataset.i]);
@@ -518,8 +494,6 @@ $("judgeBtn").onclick = ()=>{
       <p>該当：食事${cnt["食事"]}／睡眠${cnt["睡眠"]}／排泄${cnt["排泄"]}　最も妨げている機能：${main?`<span class="badge bn">${main}</span>`:"<span class='badge b2'>該当なし</span>"}</p>      ${main?`<table class="santable"><tr><th>関連する焦</th><td>${SANSHO_SHO[main]}</td></tr><tr><th>追う指標</th><td>${SANSHO_INDEX[main]}</td></tr>
       <tr><th>推奨難度</th><td>${sr?`M${sr[0]}〜M${sr[1]}（該当${hits.length}項目${multi?"・複数機能に波及":""}${chronic?"・長期化":""}。たたき台）`:"―"}</td></tr>
       <tr><th>進め方</th><td>鍼灸と生活指導を同時に増やしすぎない。一つの介入後に同じ指標で再評価し、1〜4週間の記録で回復力を判断</td></tr></table>`:"<div class='note'>三焦の介入対象なし。陰陽（＋六道）で完結。</div>"}`;
-    $("sanshoBuiLabel").textContent = `${groupLabel}${sr?`／推奨 M${sr[0]}〜M${sr[1]}`:""}`;
-    $("sanshoList").innerHTML = sr ? perGroup(g=>listFor("三焦", g, sr[0], sr[1])) : `<div class="note">三焦の該当がないため、三焦の枠は表示しません。</div>`;
   } else $("sanshoResult").classList.add("hidden");
 
   // ---- 患者説明 ----

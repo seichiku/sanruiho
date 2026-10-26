@@ -94,13 +94,12 @@
     <h2>STEP 1｜主訴</h2>
     <p class="sub">患者名と、本日主に見てほしい部位・訴えを入れる</p>
     <div class="q"><div class="label">患者名</div><input type="text" id="ptName" placeholder="例：山田 太郎（イニシャル可）" maxlength="40"></div>
-    <div class="q"><div class="label">部位（保険請求と同じ区分。1つ）</div>
+    <div class="q"><div class="label">部位（保険請求と同じ区分。複数選択可）</div>
       <div class="grp">【体幹】</div><div class="bui-grid" id="buiGrid0"></div>
       <div class="grp">【上肢】</div><div class="bui-grid" id="buiGrid1"></div>
       <div class="grp">【下肢】</div><div class="bui-grid" id="buiGrid2"></div>
       <div class="sub" id="partNote" style="margin-top:6px;"></div>
     </div>
-    <div class="q"><div class="label">左右<span id="sideReq" style="font-weight:400;color:#667;"></span></div><div class="opts small" id="sideOpts"></div></div>
     <div class="q"><div class="label">訴えの種類（当てはまるものすべて）</div><div class="opts" id="complaintOpts"></div></div>
     <div class="q"><div class="label">発症からの期間（参考。日数だけで時期を決めない）</div><div class="opts" id="periodOpts"></div></div>
     <div class="q"><div class="label">きっかけ</div><div class="opts" id="triggerOpts"></div></div>
@@ -171,7 +170,7 @@
       <h2>陰陽｜推奨される治療法と時期の方針</h2>
       <div id="inyoBox"></div>
       <h3>陰陽の訓練プログラム枠（<span id="inyoBuiLabel"></span>）</h3>
-      <p class="sub">緑＝推奨難度の範囲（たたき台）。<span class="warn">施術者本人が合格している難度の範囲内で選択。M5は指導者の監督下。</span></p>
+      <p class="sub">評価した組織に合い、推奨難度の範囲（たたき台）に入る枠だけを表示。<span class="warn">施術者本人が合格している難度の範囲内で選択。M5は指導者の監督下。</span></p>
       <div id="inyoList"></div>
     </div>
     <div class="card hidden" id="rikudoResult">
@@ -238,7 +237,7 @@ function el(html){ const d=document.createElement("div"); d.innerHTML=html.trim(
 function $(id){ return document.getElementById(id); }
 
 let state = {
-  part:null, bui:null, side:null, complaints:new Set(), period:null, trigger:null, course:null,
+  parts:[], groups:[], complaints:new Set(), period:null, trigger:null, course:null,
   tissue:null, excl:null, phase:Array(PHASE_Q.length).fill(null),
   branch:new Set(), rhythm:Array(RHYTHMS.length).fill(null), mainRhythm:null, mainFunc:null,
   lastResult:null,
@@ -270,17 +269,18 @@ const ZONE_GRID = {"体幹":"buiGrid0","上肢":"buiGrid1","下肢":"buiGrid2"};
 PARTS.forEach(p=>{
   const btn = el(`<button>${p.label}</button>`);
   btn.onclick = ()=>{
-    state.part=p; state.bui=p.group;
-    document.querySelectorAll(".bui-grid button").forEach(c=>c.classList.remove("sel")); btn.classList.add("sel");
-    $("neighborTxt").textContent = NEIGHBORS[p.group];
-    $("partNote").textContent = p.near ? `「${p.label}」は正本の訓練プログラムに枠がないため、近接する「${GROUP_LABEL[p.group]}」の枠を参考表示します。` : `訓練プログラム枠：${GROUP_LABEL[p.group]}`;
-    $("sideReq").textContent = p.side ? "（必須）" : "（頸部・腰部などは左右の指定なし。任意）";
+    btn.classList.toggle("sel");
+    state.parts = btn.classList.contains("sel") ? [...state.parts, p] : state.parts.filter(q=>q!==p);
+    state.parts.sort((a,b)=>PARTS.indexOf(a)-PARTS.indexOf(b));
+    state.groups = [...new Set(state.parts.map(q=>q.group))];
+    $("neighborTxt").textContent = state.groups.map(g=>NEIGHBORS[g]).join("／");
+    $("partNote").textContent = state.groups.length ? `訓練プログラム枠：${state.groups.map(g=>GROUP_LABEL[g]).join("・")}` + (state.parts.some(q=>q.near) ? `（${state.parts.filter(q=>q.near).map(q=>q.label).join("・")}は正本に枠がないため近接区分を参考表示）` : "") : "";
     refresh();
   };
   $(ZONE_GRID[p.zone]).appendChild(btn);
 });
-renderSingle($("sideOpts"), SIDES, (i,t)=> state.side=t);
-function partLabel(){ return state.part ? `${state.side ? state.side+" " : ""}${state.part.label}` : ""; }
+function partLabel(){ return state.parts.map(p=>p.label).join("・"); }
+function nearNote(g){ const n = state.parts.filter(p=>p.near && p.group===g); return n.length ? `<div class="note">「${n.map(p=>p.label).join("・")}」は正本の訓練プログラムに枠がないため、近接する「${GROUP_LABEL[g]}」の枠を参考表示しています。</div>` : ""; }
 COMPLAINTS.forEach(c=>{
   const b = el(`<button>${c.t}</button>`);
   b.onclick = ()=>{ if(state.complaints.has(c.t)){ state.complaints.delete(c.t); b.classList.remove("sel"); } else { state.complaints.add(c.t); b.classList.add("sel"); } updateTissueHint(); refresh(); };
@@ -377,7 +377,7 @@ function branchRecommend(){
   if(!inyoReady()) return null;
   if(state.excl) return {rikudo:false, sansho:false, text:"対象外の組織です。陰陽のM1〜5からは除外。必要な処置（通電・アイシング・電療・理学療法）は十分に行い、原因となる筋があれば筋炎として評価し直してください。"};
   const ph = majorityPhase(state.phase);
-  const chronic = state.period===2 || state.course===2;
+  const chronic = state.period===PERIOD_CHRONIC || state.course===2;
   const noEffect = state.course===1;
   const lifestyle = state.complaints.has("だるさ・疲労・冷え");
   const rikudo = ph===2 || noEffect || chronic;
@@ -397,40 +397,44 @@ function branchRecommend(){
 function refresh(){
   const rec = branchRecommend();
   $("branchRec").innerHTML = rec ? rec.text : "STEP 2 を入力すると推奨が表示されます。";
-  const sideOk = state.part && (!state.part.side || state.side);
-  let ok = state.bui && sideOk && inyoReady() && state.branch.size>0;
+  let ok = state.parts.length>0 && inyoReady() && state.branch.size>0;
   let msg = "";
-  if(!state.bui) msg = "STEP1：部位を選んでください";
-  else if(!sideOk) msg = "STEP1：左右を選んでください";
+  if(!state.parts.length) msg = "STEP1：部位を選んでください";
   else if(!inyoReady()) msg = "STEP2：対象組織と時期の所見4項目を選んでください";
   else if(state.branch.size===0) msg = "STEP3：分岐を選んでください";
   else if(state.branch.has("rikudo") && !state.rhythm.some(v=>v!==null && v!==3)){ ok=false; msg = "STEP4：運動リズムを1つ以上評価してください"; }
   $("judgeBtn").disabled = !ok; $("judgeMsg").textContent = msg;
 }
 
-function mItem(r, lo, hi){
-  const inRange = lo!==null && r.m>=lo && r.m<=hi;
-  return `<div class="m-item ${inRange?"rec":"dim"}">
-    <h4>［${r.jutsu}｜M${r.m}］${r.title}${inRange?'<span class="badge-rec">推奨範囲</span>':''}${r.m===5?'<span class="badge-m5">監督下のみ</span>':''}</h4>
+function mItem(r){
+  return `<div class="m-item rec">
+    <h4>［${r.jutsu}｜M${r.m}］${r.title}${r.m===5?'<span class="badge-m5">監督下のみ</span>':''}</h4>
     <div class="meta">術前術後の検査：${r.kensa}<br>
       ${r.taisho?`対象：${r.taisho}<br>`:""}施術：${r.houhou}<br>
       ${r.keiketsu?`経穴：${r.keiketsu}${r.bante?`／${r.bante.match(/分/)?"時間":"番手"}：${r.bante}`:""}<br>`:""}合格基準：${r.gokaku}</div></div>`;
 }
-function listFor(cls, bui, lo, hi){
-  const items = DB.filter(r=>r.cls===cls && r.bui===bui);
-  const order = {"手技":0,"鍼術":1,"灸術":2};
-  items.sort((a,b)=>(order[a.jutsu]-order[b.jutsu])||(a.m-b.m));
-  return items.map(r=>mItem(r,lo,hi)).join("");
+// 推奨難度の範囲内の枠だけを表示。tissue を渡すと（陰陽）、評価した組織と一致する枠に絞る。
+function listFor(cls, bui, lo, hi, tissue){
+  if(lo===null) return "";
+  return ["手技","鍼術","灸術"].map(j=>{
+    const all = DB.filter(r=>r.cls===cls && r.bui===bui && r.jutsu===j && (!tissue || FRAME_TISSUE[bui][j][r.m-1].includes(tissue)));
+    const hit = all.filter(r=>r.m>=lo && r.m<=hi).sort((a,b)=>a.m-b.m);
+    if(hit.length) return hit.map(mItem).join("");
+    const other = all.length ? `（${tissue}の枠は ${all.map(r=>`M${r.m} ${r.title}`).join("・")} で推奨難度の範囲外）` : (tissue ? `（${tissue}に対応する枠なし）` : "");
+    return `<div class="note">${j}：推奨難度 M${lo}〜M${hi} に合う枠はありません${other}。上の治療法（P）を参考にしてください。</div>`;
+  }).join("");
 }
 
 $("judgeBtn").onclick = ()=>{
   const buiLabel = partLabel();
-  const groupLabel = GROUP_LABEL[state.bui];
-  const nearNote = state.part.near ? `<div class="note">「${state.part.label}」は正本の訓練プログラムに枠がないため、近接する「${groupLabel}」の枠を参考表示しています。</div>` : "";
+  const groupLabel = state.groups.map(g=>GROUP_LABEL[g]).join("・");
+  const neighbors = state.groups.map(g=>NEIGHBORS[g]).join("／");
+  // 部位の区分ごとに枠を並べる（区分が2つ以上なら見出しを付ける）
+  const perGroup = f => state.groups.map(g=>(state.groups.length>1?`<div class="grp">【${GROUP_LABEL[g]}】</div>`:"") + nearNote(g) + f(g)).join("");
   const rec = branchRecommend();
   const red = checked($("redArea")).map(c=>REDFLAGS[+c.dataset.i]);
   const inSigns = checked($("inSignArea")).map(c=>IN_SIGNS[+c.dataset.i]);
-  const chronic = state.period===2 || state.course===2;
+  const chronic = state.period===PERIOD_CHRONIC || state.course===2;
   const useRikudo = state.branch.has("rikudo"), useSansho = state.branch.has("sansho");
   const ptName = $("ptName").value.trim();
 
@@ -461,9 +465,8 @@ $("judgeBtn").onclick = ()=>{
       <table class="santable"><tr><th>物療・運動</th><td>${PL.b}</td></tr><tr><th>鍼</th><td>${PL.h}</td></tr><tr><th>灸</th><td>${PL.k}</td></tr></table>
       <details><summary>患者の訴え（S）早見表と照合</summary><div class="note">${tissue.name}×${PHASES[ph]}の典型：${S_TABLE[tissue.key][ph]}<br>他の時期：${PHASES.map((p,i)=>i===ph?null:`${PHASE_SHORT[i]}＝${S_TABLE[tissue.key][i]}`).filter(Boolean).join("／")}</div></details>
       <details><summary>難度M1〜M5の意味と、この判定の根拠（たたき台）</summary><div class="note">${DIFF_DEF.map((d,i)=>`M${i+1}：${d}`).join("<br>")}<br><br>根拠：組織の下限（筋M1／筋膜M2／関節・神経・靭帯M3）＋時期（急性期＝下限のみ／拘縮期＝下限〜＋1／回復期＝＋1〜＋2）。3ヶ月以上・再発はM4〜M5。</div></details>`;
-    const hasFrame = DB.some(r=>r.cls==="陰陽" && r.bui===state.bui);
-    $("inyoBuiLabel").textContent = `${groupLabel}／推奨 M${dRange[0]}〜M${dRange[1]}`;
-    $("inyoList").innerHTML = nearNote + (hasFrame ? listFor("陰陽", state.bui, dRange[0], dRange[1]) : `<div class="note warn">陰陽分類の訓練プログラムに「${groupLabel}」の枠はまだありません（正本は頸椎・肩・腰部・膝・足関節の5部位）。隣接する部位の枠と、上の治療法（P）を参考にしてください。</div>`);
+    $("inyoBuiLabel").textContent = `${groupLabel}／${tissue.key}／推奨 M${dRange[0]}〜M${dRange[1]}`;
+    $("inyoList").innerHTML = perGroup(g=> DB.some(r=>r.cls==="陰陽" && r.bui===g) ? listFor("陰陽", g, dRange[0], dRange[1], tissue.key) : `<div class="note warn">陰陽分類の訓練プログラムに「${GROUP_LABEL[g]}」の枠はまだありません（正本は頸椎・肩・腰部・膝・足関節の5部位）。上の治療法（P）を参考にしてください。</div>`);
   }
 
   // ---- 六道 ----
@@ -476,11 +479,11 @@ $("judgeBtn").onclick = ()=>{
     $("rikudoResult").classList.remove("hidden");
     $("rikudoBox").innerHTML = `
       <p>乱れたリズム：${abn.length?abn.map(r=>`<span class="badge ${state.rhythm[RHYTHMS.indexOf(r)]===2?"b0":"b1"}">M${r.m} ${r.name}</span>`).join(""):"<span class='badge b2'>乱れなし</span>"}${rk.main?`　最も大きい制限：<strong>${rk.main}</strong>`:""}</p>
-      <table class="santable"><tr><th>隣接関節</th><td>${NEIGHBORS[state.bui]}（この中から「リズムが途切れる関節」を1つ選び、1つだけ介入して同じ条件で再検査）</td></tr>
+      <table class="santable"><tr><th>隣接関節</th><td>${neighbors}（この中から「リズムが途切れる関節」を1つ選び、1つだけ介入して同じ条件で再検査）</td></tr>
       <tr><th>推奨難度</th><td>${rr?`M${rr[0]}〜M${rr[1]}（乱れ${abn.length}つ${pain?"・発痛あり→鑑別を伴うのでM3以上":""}。たたき台）`:"六道の介入対象なし（陰陽に戻る）"}</td></tr>
       <tr><th>記録</th><td>ROMだけでなく、痛み・速度・滑らかさ・出力・呼吸の変化。合格は主訴動作の改善と再現性</td></tr></table>`;
     $("rikudoBuiLabel").textContent = `${groupLabel}${rr?`／推奨 M${rr[0]}〜M${rr[1]}`:""}`;
-    $("rikudoList").innerHTML = nearNote + listFor("六道", state.bui, rr?rr[0]:null, rr?rr[1]:null);
+    $("rikudoList").innerHTML = rr ? perGroup(g=>listFor("六道", g, rr[0], rr[1])) : `<div class="note">運動リズムの乱れがないため、六道の枠は表示しません。</div>`;
   } else $("rikudoResult").classList.add("hidden");
 
   // ---- 三焦 ----
@@ -501,7 +504,7 @@ $("judgeBtn").onclick = ()=>{
       <tr><th>推奨難度</th><td>${sr?`M${sr[0]}〜M${sr[1]}（該当${hits.length}項目${multi?"・複数機能に波及":""}${chronic?"・長期化":""}。たたき台）`:"―"}</td></tr>
       <tr><th>進め方</th><td>鍼灸と生活指導を同時に増やしすぎない。一つの介入後に同じ指標で再評価し、1〜4週間の記録で回復力を判断</td></tr></table>`:"<div class='note'>三焦の介入対象なし。陰陽（＋六道）で完結。</div>"}`;
     $("sanshoBuiLabel").textContent = `${groupLabel}${sr?`／推奨 M${sr[0]}〜M${sr[1]}`:""}`;
-    $("sanshoList").innerHTML = nearNote + listFor("三焦", state.bui, sr?sr[0]:null, sr?sr[1]:null);
+    $("sanshoList").innerHTML = sr ? perGroup(g=>listFor("三焦", g, sr[0], sr[1])) : `<div class="note">三焦の該当がないため、三焦の枠は表示しません。</div>`;
   } else $("sanshoResult").classList.add("hidden");
 
   // ---- 患者説明 ----
@@ -514,7 +517,7 @@ $("judgeBtn").onclick = ()=>{
       "炎症は落ち着き、硬さや動かしにくさが残っている時期です。痛みを増やさずに動きを取り戻し、日常の動作を少しずつ練習していきます。",
       "日常の痛みは減り、負荷に耐える力を取り戻す時期です。運動や生活動作への復帰を主役に、残る痛みや張りに施術を合わせていきます。"][ph];
     pHtml += `<p>${buiLabel}の症状は、${tw}の炎症が「${PHASE_SHORT[ph]}」にあたる状態と考えられます。${pw}</p>`;
-    if(useRikudo && rk && rk.abn.length) pHtml += `<p>また、体の動きのリズムを見ると${rk.abn.join("・")}に乱れがあり、${buiLabel}に負担をかけています。患部だけでなく隣の関節（${NEIGHBORS[state.bui]}）から動きを整える施術を組み合わせます。</p>`;
+    if(useRikudo && rk && rk.abn.length) pHtml += `<p>また、体の動きのリズムを見ると${rk.abn.join("・")}に乱れがあり、${buiLabel}に負担をかけています。患部だけでなく隣の関節（${neighbors}）から動きを整える施術を組み合わせます。</p>`;
     if(useSansho && ss && ss.main) pHtml += `<p>さらに問診から、${ss.main}の面で回復力が下がっているサインが見られます。施術に加えて、${ss.main}の記録と生活面のご提案もさせてください。</p>`;
   }
   $("patientBox").innerHTML = pHtml;
@@ -522,7 +525,7 @@ $("judgeBtn").onclick = ()=>{
   // ---- 記録用 ----
   state.lastResult = {
     v: 2, app: APP_VERSION, date: localStamp(),
-    ptName, bui: state.part.label, side: state.side||"", group: groupLabel, complaints: [...state.complaints].join("・")||"",
+    ptName, bui: buiLabel, side: "", group: groupLabel, complaints: [...state.complaints].join("・")||"",
     period: state.period!==null?PERIODS[state.period]:"", trigger: state.trigger||"", course: state.course!==null?COURSES[state.course]:"",
     tissue: state.excl? `対象外：${state.excl}` : tissue.name, phase: ph!==null?PHASES[ph]:"",
     inSigns: inSigns.join("／")||"なし", red: red.join("／")||"なし",

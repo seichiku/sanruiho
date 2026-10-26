@@ -105,6 +105,8 @@
     <div class="q"><div class="label">発症からの期間（参考。日数だけで時期を決めない）</div><div class="opts" id="periodOpts"></div></div>
     <div class="q"><div class="label">きっかけ</div><div class="opts" id="triggerOpts"></div></div>
     <div class="q"><div class="label">経過</div><div class="opts" id="courseOpts"></div></div>
+    <div id="lifeArea"></div>
+    <div class="q"><div class="label">ストレス（当てはまるものすべて）</div><div class="checks" id="stressArea"></div></div>
   </div>
 
   <!-- STEP 2 -->
@@ -153,9 +155,6 @@
     <h2>STEP 5｜三焦分類（食事・睡眠・排泄）</h2>
     <p class="sub">問診で該当するものすべてにチェック。主訴の回復を最も妨げている機能を1つ選ぶ</p>
     <div class="checks" id="sanshoArea"></div>
-    <div class="q" style="margin-top:10px;"><div class="label">【運動】日常的に行っている運動は？</div><div class="opts small" id="exerciseOpts"></div></div>
-    <div class="grp">【ストレス】（当てはまるものすべて）</div>
-    <div class="checks" id="stressArea"></div>
     <div class="q" style="margin-top:10px;"><div class="label">最も妨げている機能（空欄なら該当数の多い機能を採用）</div><div class="opts small" id="mainFuncOpts"></div></div>
     <details><summary>三焦分類の共通評価手順（5つ）</summary><ol id="sanshoSteps" style="font-size:.8rem;"></ol></details>
   </div>
@@ -286,6 +285,17 @@ COMPLAINTS.forEach(c=>{
 renderSingle($("periodOpts"), PERIODS, (i)=> state.period=i);
 renderSingle($("triggerOpts"), TRIGGERS, (i,t)=> state.trigger=t);
 renderSingle($("courseOpts"), COURSES, (i)=> state.course=i);
+state.life = {};
+LIFESTYLE.forEach(l=>{
+  const wrap = el(`<div class="q"><div class="label">${l.label}</div><div class="opts"></div></div>`);
+  renderSingle(wrap.querySelector(".opts"), l.opts, (i,t)=> state.life[l.key]=t);
+  $("lifeArea").appendChild(wrap);
+});
+renderChecks($("stressArea"), STRESS, "i");
+function lifeText(){
+  const stress = checked($("stressArea")).map(c=>STRESS[+c.dataset.i]);
+  return [...LIFESTYLE.map(l=>`${l.key}=${state.life[l.key]||"未入力"}`), `ストレス=${stress.join("・")||"なし"}`].join("／");
+}
 
 // ---- STEP2 ----
 TISSUES.forEach(t=>{
@@ -356,8 +366,6 @@ RIKUDO_STEPS.forEach(s=> $("rikudoSteps").appendChild(el(`<li>${s}</li>`)));
 // ---- STEP5 ----
 { let lastG=""; SANSHO_Q.forEach((q,i)=>{ if(q.g!==lastG){ $("sanshoArea").appendChild(el(`<div class="grp">【${q.g}】</div>`)); lastG=q.g; } $("sanshoArea").appendChild(el(`<label><input type="checkbox" data-i="${i}"> ${q.t}</label>`)); }); }
 $("sanshoArea").querySelectorAll("input").forEach(c=> c.onchange = refresh);
-renderSingle($("exerciseOpts"), SANSHO_EXERCISE, (i,t)=> state.exercise=t);
-renderChecks($("stressArea"), SANSHO_STRESS, "i");
 renderSingle($("mainFuncOpts"), ["食事","睡眠","排泄"], (i,t)=> state.mainFunc=t);
 SANSHO_STEPS.forEach(s=> $("sanshoSteps").appendChild(el(`<li>${s}</li>`)));
 KENTEI_RULES.forEach(s=> $("kenteiRules").appendChild(el(`<li>${s}</li>`)));
@@ -448,7 +456,7 @@ $("judgeBtn").onclick = ()=>{
   // ---- 陰陽 ----
   let ph = null, tissue = null, dRange = null;
   if(!state.excl){ ph = majorityPhase(state.phase); tissue = TISSUES.find(t=>t.key===state.tissue); dRange = inyoDiff(tissue.key, ph, chronic); }
-  let sHtml = `<p>${ptName?`<strong>${ptName}</strong> 様｜`:""}${buiLabel}｜訴え：${[...state.complaints].join("・")||"―"}｜${state.period!==null?PERIODS[state.period]:"期間未入力"}${state.course!==null?`｜${COURSES[state.course]}`:""}</p>`;
+  let sHtml = `<p>${ptName?`<strong>${ptName}</strong> 様｜`:""}${buiLabel}｜訴え：${[...state.complaints].join("・")||"―"}｜${state.period!==null?PERIODS[state.period]:"期間未入力"}${state.course!==null?`｜${COURSES[state.course]}`:""}</p><p class="sub">生活：${lifeText()}</p>`;
   if(red.length) sHtml += `<div class="note red">⚠️ レッドフラッグ：${red.join("／")}。施術より医療評価を優先してください。以下は参考表示です。</div>`;
   if(state.excl){
     sHtml += `<p><span class="badge bg">対象外</span>${state.excl}</p><div class="note warn">${EXCLUDED.find(x=>x.name===state.excl).note}</div>`;
@@ -490,18 +498,14 @@ $("judgeBtn").onclick = ()=>{
   let ss = null;
   if(useSansho){
     const hits = checked($("sanshoArea")).map(c=>SANSHO_Q[+c.dataset.i]);
-    const stress = checked($("stressArea")).map(c=>SANSHO_STRESS[+c.dataset.i]);
-    const exercise = state.exercise||"";
     const cnt = {"食事":0,"睡眠":0,"排泄":0}; hits.forEach(h=>cnt[h.g]++);
     let main = state.mainFunc; if(!main){ main = Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a])[0]; if(cnt[main]===0) main=null; }
     const multi = Object.values(cnt).filter(v=>v>0).length>=2;
     const sr = sanshoDiff(hits.length, multi, chronic);
-    ss = {hits: hits.map(h=>h.t), exercise, stress, cnt, main, range: sr};
+    ss = {hits: hits.map(h=>h.t), cnt, main, range: sr};
     $("sanshoResult").classList.remove("hidden");
     $("sanshoBox").innerHTML = `
-      <p>該当：食事${cnt["食事"]}／睡眠${cnt["睡眠"]}／排泄${cnt["排泄"]}　最も妨げている機能：${main?`<span class="badge bn">${main}</span>`:"<span class='badge b2'>該当なし</span>"}</p>
-      <p>運動：${exercise||"未入力"}／ストレス：${stress.join("・")||"なし"}</p>
-      ${main?`<table class="santable"><tr><th>関連する焦</th><td>${SANSHO_SHO[main]}</td></tr><tr><th>追う指標</th><td>${SANSHO_INDEX[main]}</td></tr>
+      <p>該当：食事${cnt["食事"]}／睡眠${cnt["睡眠"]}／排泄${cnt["排泄"]}　最も妨げている機能：${main?`<span class="badge bn">${main}</span>`:"<span class='badge b2'>該当なし</span>"}</p>      ${main?`<table class="santable"><tr><th>関連する焦</th><td>${SANSHO_SHO[main]}</td></tr><tr><th>追う指標</th><td>${SANSHO_INDEX[main]}</td></tr>
       <tr><th>推奨難度</th><td>${sr?`M${sr[0]}〜M${sr[1]}（該当${hits.length}項目${multi?"・複数機能に波及":""}${chronic?"・長期化":""}。たたき台）`:"―"}</td></tr>
       <tr><th>進め方</th><td>鍼灸と生活指導を同時に増やしすぎない。一つの介入後に同じ指標で再評価し、1〜4週間の記録で回復力を判断</td></tr></table>`:"<div class='note'>三焦の介入対象なし。陰陽（＋六道）で完結。</div>"}`;
     $("sanshoBuiLabel").textContent = `${groupLabel}${sr?`／推奨 M${sr[0]}〜M${sr[1]}`:""}`;
@@ -526,7 +530,7 @@ $("judgeBtn").onclick = ()=>{
   // ---- 記録用 ----
   state.lastResult = {
     v: 2, app: APP_VERSION, date: localStamp(),
-    ptName, bui: buiLabel, side: "", group: groupLabel, complaints: [...state.complaints].join("・")||"",
+    ptName, bui: buiLabel, side: "", group: groupLabel, complaints: [[...state.complaints].join("・")||"―", lifeText()].join("／"),
     period: state.period!==null?PERIODS[state.period]:"", trigger: state.trigger||"", course: state.course!==null?COURSES[state.course]:"",
     tissue: state.excl? `対象外：${state.excl}` : tissue.name, phase: ph!==null?PHASES[ph]:"",
     inSigns: inSigns.join("／")||"なし", red: red.join("／")||"なし",
@@ -536,7 +540,7 @@ $("judgeBtn").onclick = ()=>{
     branchRec: rec.rikudo||rec.sansho?[rec.rikudo?"六道":null,rec.sansho?"三焦":null].filter(Boolean).join("＋"):"陰陽のみ",
     rikudoAns: useRikudo? RHYTHMS.map((r,i)=>state.rhythm[i]===null?null:`M${r.m}${r.name}=${RHYTHM_OPTS[state.rhythm[i]]}`).filter(Boolean).join("／") : "",
     rikudoN: useRikudo&&rk? rk.abn.length : "", rikudoMain: useRikudo&&rk? rk.main : "", rikudoM: useRikudo&&rk&&rk.range?`M${rk.range[0]}-M${rk.range[1]}`:"",
-    sanshoAns: useSansho&&ss? [ss.hits.join("／")||"なし", `運動=${ss.exercise||"未入力"}`, `ストレス=${ss.stress.join("・")||"なし"}`].join("／") : "", sanshoWarn: "",
+    sanshoAns: useSansho&&ss? ss.hits.join("／")||"なし" : "", sanshoWarn: "",
     sanshoMain: useSansho&&ss? (ss.main||"該当なし") : "", sanshoM: useSansho&&ss&&ss.range?`M${ss.range[0]}-M${ss.range[1]}`:"",
   };
   $("resultArea").style.display = "block";

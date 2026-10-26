@@ -153,8 +153,9 @@
     <h2>STEP 5｜三焦分類（食事・睡眠・排泄）</h2>
     <p class="sub">問診で該当するものすべてにチェック。主訴の回復を最も妨げている機能を1つ選ぶ</p>
     <div class="checks" id="sanshoArea"></div>
-    <div class="grp" style="color:#8a1c1c;">【警告徴候：該当すれば医療評価を優先】</div>
-    <div class="checks red" id="sanshoWarnArea"></div>
+    <div class="q" style="margin-top:10px;"><div class="label">【運動】日常的に行っている運動は？</div><div class="opts small" id="exerciseOpts"></div></div>
+    <div class="grp">【ストレス】（当てはまるものすべて）</div>
+    <div class="checks" id="stressArea"></div>
     <div class="q" style="margin-top:10px;"><div class="label">最も妨げている機能（空欄なら該当数の多い機能を採用）</div><div class="opts small" id="mainFuncOpts"></div></div>
     <details><summary>三焦分類の共通評価手順（5つ）</summary><ol id="sanshoSteps" style="font-size:.8rem;"></ol></details>
   </div>
@@ -360,7 +361,8 @@ RIKUDO_STEPS.forEach(s=> $("rikudoSteps").appendChild(el(`<li>${s}</li>`)));
 // ---- STEP5 ----
 { let lastG=""; SANSHO_Q.forEach((q,i)=>{ if(q.g!==lastG){ $("sanshoArea").appendChild(el(`<div class="grp">【${q.g}】</div>`)); lastG=q.g; } $("sanshoArea").appendChild(el(`<label><input type="checkbox" data-i="${i}"> ${q.t}</label>`)); }); }
 $("sanshoArea").querySelectorAll("input").forEach(c=> c.onchange = refresh);
-renderChecks($("sanshoWarnArea"), SANSHO_WARN, "i");
+renderSingle($("exerciseOpts"), SANSHO_EXERCISE, (i,t)=> state.exercise=t);
+renderChecks($("stressArea"), SANSHO_STRESS, "i");
 renderSingle($("mainFuncOpts"), ["食事","睡眠","排泄"], (i,t)=> state.mainFunc=t);
 SANSHO_STEPS.forEach(s=> $("sanshoSteps").appendChild(el(`<li>${s}</li>`)));
 KENTEI_RULES.forEach(s=> $("kenteiRules").appendChild(el(`<li>${s}</li>`)));
@@ -503,16 +505,17 @@ $("judgeBtn").onclick = ()=>{
   let ss = null;
   if(useSansho){
     const hits = checked($("sanshoArea")).map(c=>SANSHO_Q[+c.dataset.i]);
-    const warn = checked($("sanshoWarnArea")).map(c=>SANSHO_WARN[+c.dataset.i]);
+    const stress = checked($("stressArea")).map(c=>SANSHO_STRESS[+c.dataset.i]);
+    const exercise = state.exercise||"";
     const cnt = {"食事":0,"睡眠":0,"排泄":0}; hits.forEach(h=>cnt[h.g]++);
     let main = state.mainFunc; if(!main){ main = Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a])[0]; if(cnt[main]===0) main=null; }
     const multi = Object.values(cnt).filter(v=>v>0).length>=2;
     const sr = sanshoDiff(hits.length, multi, chronic);
-    ss = {hits: hits.map(h=>h.t), warn, cnt, main, range: sr};
+    ss = {hits: hits.map(h=>h.t), exercise, stress, cnt, main, range: sr};
     $("sanshoResult").classList.remove("hidden");
     $("sanshoBox").innerHTML = `
-      ${warn.length?`<div class="note red">⚠️ 警告徴候：${warn.join("／")}。鍼灸より医療機関での評価を優先。</div>`:""}
       <p>該当：食事${cnt["食事"]}／睡眠${cnt["睡眠"]}／排泄${cnt["排泄"]}　最も妨げている機能：${main?`<span class="badge bn">${main}</span>`:"<span class='badge b2'>該当なし</span>"}</p>
+      <p>運動：${exercise||"未入力"}／ストレス：${stress.join("・")||"なし"}</p>
       ${main?`<table class="santable"><tr><th>関連する焦</th><td>${SANSHO_SHO[main]}</td></tr><tr><th>追う指標</th><td>${SANSHO_INDEX[main]}</td></tr>
       <tr><th>推奨難度</th><td>${sr?`M${sr[0]}〜M${sr[1]}（該当${hits.length}項目${multi?"・複数機能に波及":""}${chronic?"・長期化":""}。たたき台）`:"―"}</td></tr>
       <tr><th>進め方</th><td>鍼灸と生活指導を同時に増やしすぎない。一つの介入後に同じ指標で再評価し、1〜4週間の記録で回復力を判断</td></tr></table>`:"<div class='note'>三焦の介入対象なし。陰陽（＋六道）で完結。</div>"}`;
@@ -548,7 +551,7 @@ $("judgeBtn").onclick = ()=>{
     branchRec: rec.rikudo||rec.sansho?[rec.rikudo?"六道":null,rec.sansho?"三焦":null].filter(Boolean).join("＋"):"陰陽のみ",
     rikudoAns: useRikudo? RHYTHMS.map((r,i)=>state.rhythm[i]===null?null:`M${r.m}${r.name}=${RHYTHM_OPTS[state.rhythm[i]]}`).filter(Boolean).join("／") : "",
     rikudoN: useRikudo&&rk? rk.abn.length : "", rikudoMain: useRikudo&&rk? rk.main : "", rikudoM: useRikudo&&rk&&rk.range?`M${rk.range[0]}-M${rk.range[1]}`:"",
-    sanshoAns: useSansho&&ss? ss.hits.join("／")||"なし" : "", sanshoWarn: useSansho&&ss? ss.warn.join("／")||"なし" : "",
+    sanshoAns: useSansho&&ss? [ss.hits.join("／")||"なし", `運動=${ss.exercise||"未入力"}`, `ストレス=${ss.stress.join("・")||"なし"}`].join("／") : "", sanshoWarn: "",
     sanshoMain: useSansho&&ss? (ss.main||"該当なし") : "", sanshoM: useSansho&&ss&&ss.range?`M${ss.range[0]}-M${ss.range[1]}`:"",
   };
   $("resultArea").style.display = "block";

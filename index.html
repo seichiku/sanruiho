@@ -338,12 +338,20 @@ document.querySelectorAll("#branchOpts button").forEach(b=>{
 // 発症から2週間以上（2週間〜3ヶ月／3ヶ月以上）は六道を必須にする
 const PERIOD_RIKUDO_FROM = 2;
 function rikudoForced(){ return state.period!==null && state.period>=PERIOD_RIKUDO_FROM; }
+// 主訴の生活習慣で該当があれば三焦を必須にする（該当した項目を返す）
+function sanshoReasons(){
+  const r = LIFESTYLE.filter(l=>state.life[l.key]===l.sansho).map(l=>`${l.key}：${l.sansho}`);
+  const n = checked($("stressArea")).length;
+  if(n>=STRESS_SANSHO_MIN) r.push(`ストレス${n}つ`);
+  return r;
+}
 function syncBranch(){
-  const forced = rikudoForced();
+  const forced = rikudoForced(), sForced = sanshoReasons().length>0;
   if(forced){ state.branch.delete("none"); state.branch.add("rikudo"); }
+  if(sForced){ state.branch.delete("none"); state.branch.add("sansho"); }
   document.querySelectorAll("#branchOpts button").forEach(c=>{
     c.classList.toggle("sel", state.branch.has(c.dataset.b));
-    c.disabled = forced && (c.dataset.b==="none" || c.dataset.b==="rikudo");
+    c.disabled = (c.dataset.b==="none" && (forced||sForced)) || (c.dataset.b==="rikudo" && forced) || (c.dataset.b==="sansho" && sForced);
   });
   $("rikudoCard").classList.toggle("hidden", !state.branch.has("rikudo"));
   $("sanshoCard").classList.toggle("hidden", !state.branch.has("sansho"));
@@ -397,7 +405,7 @@ function branchRecommend(){
   const noEffect = state.course===1;
   const lifestyle = state.complaints.has("だるさ・疲労・冷え");
   const rikudo = ph===2 || noEffect || chronic || rikudoForced();
-  const sansho = chronic || noEffect || lifestyle;
+  const sansho = chronic || noEffect || lifestyle || sanshoReasons().length>0;
   let text = `時期の判定：<strong>${PHASES[ph]}</strong>。`;
   if(ph===0) text += "急性期は保護と疼痛管理が先。原則<strong>陰陽のみ</strong>で局所処置を完結させる。";
   if(ph===1) text += "拘縮期は陰陽中心。隣接関節の制限が疑われれば六道も検討。";
@@ -413,7 +421,8 @@ function branchRecommend(){
 function refresh(){
   syncBranch();
   const rec = branchRecommend();
-  $("branchRec").innerHTML = (rikudoForced() ? `発症から${PERIODS[state.period]}のため、<strong>六道は必須</strong>です（陰陽のみでは終えられません）。<br>` : "") + (rec ? rec.text : "STEP 2 を入力すると推奨が表示されます。");
+  const sr = sanshoReasons();
+  $("branchRec").innerHTML = (rikudoForced() ? `発症から${PERIODS[state.period]}のため、<strong>六道は必須</strong>です（陰陽のみでは終えられません）。<br>` : "") + (sr.length ? `主訴の生活習慣（${sr.join("・")}）に該当するため、<strong>三焦は必須</strong>です。<br>` : "") +(rec ? rec.text : "STEP 2 を入力すると推奨が表示されます。");
   let ok = state.parts.length>0 && inyoReady() && state.branch.size>0;
   let msg = "";
   if(!state.parts.length) msg = "STEP1：部位を選んでください";

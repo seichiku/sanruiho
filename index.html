@@ -33,6 +33,7 @@
   .opts button.s0.sel { border-color: var(--p0); background: #ffebee; }
   .opts button.s1.sel { border-color: var(--p1); background: #fff3e0; }
   .opts button.s2.sel { border-color: var(--p2); background: #e8f5e9; }
+  .opts button:disabled { cursor: not-allowed; opacity: .6; }
   .opts.small button { flex: 0 1 auto; min-width: 0; padding: 6px 12px; }
   .opts button.hint { box-shadow: 0 0 0 2px #ffd54f inset; }
   .tissue button { flex: 1 1 45%; }
@@ -325,12 +326,22 @@ document.querySelectorAll("#branchOpts button").forEach(b=>{
     const k = b.dataset.b;
     if(k==="none"){ state.branch = new Set(["none"]); }
     else { state.branch.delete("none"); if(state.branch.has(k)) state.branch.delete(k); else state.branch.add(k); }
-    document.querySelectorAll("#branchOpts button").forEach(c=> c.classList.toggle("sel", state.branch.has(c.dataset.b)));
-    $("rikudoCard").classList.toggle("hidden", !state.branch.has("rikudo"));
-    $("sanshoCard").classList.toggle("hidden", !state.branch.has("sansho"));
     refresh();
   };
 });
+// 発症から2週間以上（2週間〜3ヶ月／3ヶ月以上）は六道を必須にする
+const PERIOD_RIKUDO_FROM = 2;
+function rikudoForced(){ return state.period!==null && state.period>=PERIOD_RIKUDO_FROM; }
+function syncBranch(){
+  const forced = rikudoForced();
+  if(forced){ state.branch.delete("none"); state.branch.add("rikudo"); }
+  document.querySelectorAll("#branchOpts button").forEach(c=>{
+    c.classList.toggle("sel", state.branch.has(c.dataset.b));
+    c.disabled = forced && (c.dataset.b==="none" || c.dataset.b==="rikudo");
+  });
+  $("rikudoCard").classList.toggle("hidden", !state.branch.has("rikudo"));
+  $("sanshoCard").classList.toggle("hidden", !state.branch.has("sansho"));
+}
 
 // ---- STEP4 ----
 RHYTHMS.forEach((r,i)=>{
@@ -380,7 +391,7 @@ function branchRecommend(){
   const chronic = state.period===PERIOD_CHRONIC || state.course===2;
   const noEffect = state.course===1;
   const lifestyle = state.complaints.has("だるさ・疲労・冷え");
-  const rikudo = ph===2 || noEffect || chronic;
+  const rikudo = ph===2 || noEffect || chronic || rikudoForced();
   const sansho = chronic || noEffect || lifestyle;
   let text = `時期の判定：<strong>${PHASES[ph]}</strong>。`;
   if(ph===0) text += "急性期は保護と疼痛管理が先。原則<strong>陰陽のみ</strong>で局所処置を完結させる。";
@@ -395,8 +406,9 @@ function branchRecommend(){
 }
 
 function refresh(){
+  syncBranch();
   const rec = branchRecommend();
-  $("branchRec").innerHTML = rec ? rec.text : "STEP 2 を入力すると推奨が表示されます。";
+  $("branchRec").innerHTML = (rikudoForced() ? `発症から${PERIODS[state.period]}のため、<strong>六道は必須</strong>です（陰陽のみでは終えられません）。<br>` : "") + (rec ? rec.text : "STEP 2 を入力すると推奨が表示されます。");
   let ok = state.parts.length>0 && inyoReady() && state.branch.size>0;
   let msg = "";
   if(!state.parts.length) msg = "STEP1：部位を選んでください";

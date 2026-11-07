@@ -225,7 +225,7 @@
 <!-- ?v= は更新時に変える（古いキャッシュの theory.js と混ざらないように） -->
 <script src="theory.js?v=20261026d"></script>
 <script>
-const APP_VERSION = "v0.2";
+const APP_VERSION = "v0.2-test1107";
 function el(html){ const d=document.createElement("div"); d.innerHTML=html.trim(); return d.firstChild; }
 function $(id){ return document.getElementById(id); }
 
@@ -513,7 +513,7 @@ $("judgeBtn").onclick = ()=>{
 
   // ---- 記録用 ----
   state.lastResult = {
-    v: 2, app: APP_VERSION, date: localStamp(),
+    v: 3, app: APP_VERSION, date: localStamp(),   // 2026-11-07〜 テスト運用：「ログv3」タブへ
     ptName, bui: buiLabel, side: "", group: groupLabel, complaints: [[...state.complaints].join("・")||"―", lifeText()].join("／"),
     period: state.period!==null?PERIODS[state.period]:"", trigger: state.trigger||"", course: state.course!==null?COURSES[state.course]:"",
     tissue: state.excl? `対象外：${state.excl}` : tissue.name, phase: ph!==null?PHASES[ph]:"",
@@ -533,7 +533,7 @@ $("judgeBtn").onclick = ()=>{
 };
 
 // ---- log ----
-const API_URL = "https://script.google.com/macros/s/AKfycbzBPkI-XshHFTzRn-XqJR4iO_ffY2KxcOqprgqr3zOmyKTlpg-B-dVqeHaKSS5c4v-QQQ/exec";   // GAS Web App（三類法③評価ログ にバインド。v2は「ログv2」タブへ）
+const API_URL = "https://script.google.com/macros/s/AKfycbzBPkI-XshHFTzRn-XqJR4iO_ffY2KxcOqprgqr3zOmyKTlpg-B-dVqeHaKSS5c4v-QQQ/exec";   // GAS Web App（三類法③評価ログ にバインド。v3は「ログv3」タブへ・v2は「ログv2」）
 const LS_KEY = "sanruiho_logs_v2";
 const LS_UNSENT = "sanruiho_unsent_v2";
 const LS_UNSENT_V1 = "sanruiho_unsent_v1";
